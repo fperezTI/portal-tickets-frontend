@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import CaseStatusBadge from '../components/CaseStatusBadge';
 import {
   ArrowLeft, Mail, Phone, CheckSquare, StickyNote,
-  Calendar, FileText, Search, ChevronDown, ChevronUp,
+  Calendar, FileText, Search, ChevronDown, ChevronUp, ShieldCheck,
 } from 'lucide-react';
 
 // ─── Priority badge ────────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ const Timeline = ({ items = [] }) => {
     : items;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold">Timeline</h2>
@@ -193,7 +193,7 @@ const Timeline = ({ items = [] }) => {
       </div>
 
       {/* Items */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
             {search ? 'Sin resultados.' : 'Sin actividad registrada.'}
@@ -268,6 +268,14 @@ const CaseDetailPage = () => {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="text-base">Detalles</CardTitle>
                 <div className="flex items-center gap-2 flex-wrap">
+                  {c.cre2f_iswarranty && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+                      style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" /> Garantía
+                    </span>
+                  )}
                   <CaseStatusBadge statecode={c.statecode} />
                   <StageBadge name={c.activeStage} />
                 </div>
@@ -340,8 +348,8 @@ const CaseDetailPage = () => {
 
         {/* ── Right column: timeline ── */}
         <div className="lg:sticky lg:top-4">
-          <Card className="h-full lg:max-h-[calc(100vh-120px)]">
-            <CardContent className="pt-4 pb-4 h-full flex flex-col" style={{ minHeight: 400 }}>
+          <Card className="h-full min-h-[400px] lg:max-h-[calc(100vh-120px)]">
+            <CardContent className="pt-4 pb-4 h-full min-h-0 flex flex-col">
               <Timeline items={c.timeline || []} />
             </CardContent>
           </Card>

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import CaseStatusBadge from '../components/CaseStatusBadge';
 import { RefreshCw, Search, UserX, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
@@ -229,7 +230,11 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
           {cases.map((c) => (
             <tr
               key={c.incidentid}
-              className="hover:bg-muted/30 cursor-pointer transition-colors"
+              className={cn(
+                'cursor-pointer transition-colors',
+                c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30'
+              )}
+              title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
               onClick={() => onRowClick(c.incidentid)}
             >
               <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap">

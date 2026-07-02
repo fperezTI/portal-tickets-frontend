@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Ticket, AlertTriangle, Clock, CheckCircle2, Inbox, BarChart2, TrendingUp, Flame, Layers,
+  Ticket, AlertTriangle, Clock, CheckCircle2, Inbox, BarChart2, TrendingUp, Flame, Layers, ShieldCheck,
 } from 'lucide-react';
 
 // ─── Colores de etapa (por prefijo numérico en el nombre) ─────────────────────
@@ -217,7 +217,7 @@ const DashboardPage = () => {
     </Alert>
   );
 
-  const { activeTotal, byPriority, unassigned, byStage = [], monthly } = data;
+  const { activeTotal, byPriority, unassigned, warranty, byStage = [], monthly } = data;
   const { critica = 0, alta = 0, normal = 0, baja = 0 } = byPriority;
   const totalMonthCreated = monthly.reduce((s, m) => s + m.created, 0);
   const totalMonthClosed  = monthly.reduce((s, m) => s + m.closed, 0);
@@ -232,8 +232,8 @@ const DashboardPage = () => {
         </p>
       </div>
 
-      {/* KPIs principales */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* KPIs principales — fila 1: totales operativos */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
           icon={Ticket}
           value={activeTotal}
@@ -242,6 +242,28 @@ const DashboardPage = () => {
           iconColor="text-primary"
           valueColor="text-primary"
         />
+        {isStaff && (
+          <KpiCard
+            icon={Inbox}
+            value={unassigned}
+            label="Por asignar"
+            iconBg="bg-orange-500/10"
+            iconColor="text-orange-600"
+            valueColor={unassigned > 0 ? 'text-orange-600' : 'text-foreground'}
+          />
+        )}
+        <KpiCard
+          icon={ShieldCheck}
+          value={warranty}
+          label="Garantía"
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          valueColor="text-amber-600"
+        />
+      </div>
+
+      {/* KPIs principales — fila 2: por prioridad */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={Flame}
           value={critica}
@@ -274,16 +296,6 @@ const DashboardPage = () => {
           iconColor="text-green-600"
           valueColor="text-green-600"
         />
-        {isStaff && (
-          <KpiCard
-            icon={Inbox}
-            value={unassigned}
-            label="Por asignar"
-            iconBg="bg-orange-500/10"
-            iconColor="text-orange-600"
-            valueColor={unassigned > 0 ? 'text-orange-600' : 'text-foreground'}
-          />
-        )}
       </div>
 
       {/* Fila 1: Por etapa + Resumen (misma altura por estar en el mismo grid row) */}
