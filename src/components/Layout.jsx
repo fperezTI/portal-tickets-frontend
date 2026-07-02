@@ -10,13 +10,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
+import { resolveAccount, resolveContact } from '../api/d365';
 
 const NAV_ITEMS = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Inicio',          roles: ['admin', 'support', 'client'], end: true },
+  { to: '/cases/new',    icon: Plus,            label: 'Nuevo Ticket',    roles: ['client'], end: true },
   { to: '/cases/active', icon: CircleDot,       label: 'Tickets Activos', roles: ['admin', 'support', 'client'] },
   { to: '/cases',        icon: Ticket,          label: 'Tickets',         roles: ['admin', 'support', 'client'], end: true },
   { to: '/admin/users',  icon: Users,           label: 'Usuarios',        roles: ['admin'], end: true },
@@ -30,10 +32,20 @@ const Layout = () => {
     () => localStorage.getItem('gs-sidebar') === '1'
   );
   const [activeCount, setActiveCount] = useState(null);
+  const [customerLabel, setCustomerLabel] = useState('');
 
   useEffect(() => {
     getStats().then((s) => setActiveCount(s.activeCases)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'client') return;
+    if (user?.d365AccountId) {
+      resolveAccount(user.d365AccountId).then((a) => setCustomerLabel(a.name || '')).catch(() => {});
+    } else if (user?.d365ContactId) {
+      resolveContact(user.d365ContactId).then((c) => setCustomerLabel(c.name || '')).catch(() => {});
+    }
+  }, [user?.role, user?.d365AccountId, user?.d365ContactId]);
 
   const toggle = () =>
     setCollapsed((prev) => {
@@ -246,13 +258,18 @@ const Layout = () => {
 
         {/* Barra superior con logo */}
         <header
-          className="shrink-0 flex items-center justify-end px-8 border-b"
+          className="shrink-0 flex items-center justify-end gap-4 px-8 border-b"
           style={{
             height: 56,
             background: 'oklch(1 0 0)',
             boxShadow: '0 1px 4px oklch(0 0 0 / 0.06)',
           }}
         >
+          {customerLabel && (
+            <span className="text-sm font-semibold text-foreground truncate max-w-[240px]">
+              {customerLabel}
+            </span>
+          )}
           <img
             src="/LOGO%20GS%20Color_240x54.png"
             alt="Grupo Staff"

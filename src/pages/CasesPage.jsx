@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import CaseStatusBadge from '../components/CaseStatusBadge';
-import { Plus, RefreshCw, Search, UserX, X } from 'lucide-react';
+import { RefreshCw, Search, UserX, X } from 'lucide-react';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
@@ -357,11 +357,6 @@ const CasesPage = () => {
               ? 'Todos los tickets'
               : <>Tickets de <span className="text-primary">{customerLabel}</span></>}
           </h1>
-          {!isStaff && hasCustomer && (
-            <Button size="sm" onClick={() => navigate('/cases/new')}>
-              <Plus className="mr-2 h-4 w-4" /> Nuevo Ticket
-            </Button>
-          )}
         </div>
 
         {/* Filtros de contenido */}
@@ -406,11 +401,6 @@ const CasesPage = () => {
           {!loading && hasCustomer && cases.length === 0 && !error && (
             <div className="py-14 text-center space-y-3">
               <p className="text-sm text-muted-foreground">No hay tickets con los filtros aplicados.</p>
-              {!isStaff && (
-                <Button variant="outline" size="sm" onClick={() => navigate('/cases/new')}>
-                  <Plus className="mr-2 h-4 w-4" /> Crear ticket
-                </Button>
-              )}
             </div>
           )}
 

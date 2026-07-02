@@ -389,7 +389,7 @@ const UsersPage = () => {
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40">
                   <tr>
-                    {['Usuario', 'Rol', 'Estado', 'Contact ID (D365)', 'Último acceso', ''].map((h) => (
+                    {['Usuario', 'Rol', 'Estado', 'Contacto / Cuenta (D365)', 'Último acceso', ''].map((h) => (
                       <th key={h} className="text-left px-6 py-3 font-medium text-muted-foreground whitespace-nowrap">
                         {h}
                       </th>
@@ -432,15 +432,21 @@ const UsersPage = () => {
                         )}
                       </td>
 
-                      {/* Contact ID */}
+                      {/* Contacto / Cuenta */}
                       <td className="px-6 py-3">
-                        {u.d365ContactId ? (
-                          <span
-                            className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded cursor-default"
-                            title={u.d365ContactId}
-                          >
-                            {shortGuid(u.d365ContactId)}
-                          </span>
+                        {u.d365ContactId || u.d365AccountId ? (
+                          <div className="min-w-0 space-y-0.5">
+                            {u.d365ContactId && (
+                              <p className="text-xs font-medium truncate" title={u.d365ContactId}>
+                                {u.contactName || shortGuid(u.d365ContactId)}
+                              </p>
+                            )}
+                            {u.d365AccountId && (
+                              <p className="text-[11px] text-muted-foreground truncate" title={u.d365AccountId}>
+                                {u.accountName || shortGuid(u.d365AccountId)}
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Sin vincular</span>
                         )}
