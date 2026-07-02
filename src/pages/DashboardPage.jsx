@@ -242,16 +242,14 @@ const DashboardPage = () => {
           iconColor="text-primary"
           valueColor="text-primary"
         />
-        {isStaff && (
-          <KpiCard
-            icon={Inbox}
-            value={unassigned}
-            label="Por asignar"
-            iconBg="bg-orange-500/10"
-            iconColor="text-orange-600"
-            valueColor={unassigned > 0 ? 'text-orange-600' : 'text-foreground'}
-          />
-        )}
+        <KpiCard
+          icon={Inbox}
+          value={unassigned}
+          label="Por asignar"
+          iconBg="bg-orange-500/10"
+          iconColor="text-orange-600"
+          valueColor={unassigned > 0 ? 'text-orange-600' : 'text-foreground'}
+        />
         <KpiCard
           icon={ShieldCheck}
           value={warranty}
