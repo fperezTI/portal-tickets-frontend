@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
@@ -19,6 +19,7 @@ import { resolveAccount, resolveContact } from '../api/d365';
 const NAV_ITEMS = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Inicio',          roles: ['admin', 'support', 'client'], end: true },
   { to: '/cases/new',    icon: Plus,            label: 'Nuevo Ticket',    roles: ['client'], end: true },
+  { to: '/cases/mine',   icon: ListChecks,      label: 'Mis Tickets',     roles: ['client'], end: true },
   { to: '/cases/active', icon: CircleDot,       label: 'Tickets Activos', roles: ['admin', 'support', 'client'] },
   { to: '/cases',        icon: Ticket,          label: 'Tickets',         roles: ['admin', 'support', 'client'], end: true },
   { to: '/admin/users',  icon: Users,           label: 'Usuarios',        roles: ['admin'], end: true },

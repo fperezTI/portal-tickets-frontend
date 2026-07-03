@@ -10,6 +10,7 @@ import CasesPage from './pages/CasesPage';
 import ActiveCasesPage from './pages/ActiveCasesPage';
 import CaseDetailPage from './pages/CaseDetailPage';
 import NewCasePage from './pages/NewCasePage';
+import MyTicketsPage from './pages/MyTicketsPage';
 import UsersPage from './pages/admin/UsersPage';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
               <Route path="/cases/active" element={<ActiveCasesPage />} />
               <Route path="/cases"        element={<CasesPage />} />
               <Route path="/cases/new"    element={<NewCasePage />} />
+              <Route path="/cases/mine"   element={<MyTicketsPage />} />
               <Route path="/cases/:id"    element={<CaseDetailPage />} />
 
               {/* Rutas de administración */}

@@ -11,3 +11,12 @@ export const resolveContact = (id) =>
 
 export const resolveAccount = (id) =>
   client.get(`/d365/accounts/${id}`).then((r) => r.data);
+
+export const listServiceCategories = () =>
+  client.get('/d365/service-categories').then((r) => r.data);
+
+export const listSystems = () =>
+  client.get('/d365/systems').then((r) => r.data);
+
+export const listAreas = () =>
+  client.get('/d365/areas').then((r) => r.data);
