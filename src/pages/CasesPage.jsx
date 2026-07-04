@@ -208,8 +208,8 @@ const FilterBar = ({ filters, onChange, onClear, stages = [], clients = [], isSt
 };
 
 // ─── Tabla de tickets ─────────────────────────────────────────────────────────
-const COLS_CLIENT = ['Ticket', 'Título', 'Etapa', 'Prioridad', 'Estado', 'Responsable', 'Creado'];
-const COLS_STAFF  = ['Ticket', 'Título', 'Cliente', 'Etapa', 'Prioridad', 'Estado', 'Responsable', 'Creado'];
+const COLS_CLIENT = ['Ticket', 'Título', 'Etapa', 'Prioridad', 'Contacto', 'Estado', 'Responsable', 'Creado'];
+const COLS_STAFF  = ['Ticket', 'Título', 'Cliente', 'Etapa', 'Prioridad', 'Contacto', 'Estado', 'Responsable', 'Creado'];
 
 const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
   const cols = showCustomer ? COLS_STAFF : COLS_CLIENT;
@@ -237,7 +237,7 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
               title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
               onClick={() => onRowClick(c.incidentid)}
             >
-              <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap">
+              <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap w-[130px] max-w-[130px] truncate">
                 {c.ticketnumber}
               </td>
               <td className="px-4 py-3 font-medium max-w-[200px]">
@@ -253,6 +253,9 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
               </td>
               <td className="px-4 py-3">
                 <PriorityBadge code={c.prioritycode} />
+              </td>
+              <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap max-w-[140px] truncate">
+                {c.contactName || '—'}
               </td>
               <td className="px-4 py-3">
                 <CaseStatusBadge statecode={c.statecode} />

@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
@@ -22,7 +22,15 @@ const NAV_ITEMS = [
   { to: '/cases/mine',   icon: ListChecks,      label: 'Mis Tickets',     roles: ['client'], end: true },
   { to: '/cases/active', icon: CircleDot,       label: 'Tickets Activos', roles: ['admin', 'support', 'client'] },
   { to: '/cases',        icon: Ticket,          label: 'Tickets',         roles: ['admin', 'support', 'client'], end: true },
-  { to: '/admin/users',  icon: Users,           label: 'Usuarios',        roles: ['admin'], end: true },
+  { to: '/policies/mine', icon: ShieldCheck,    label: 'Mis Pólizas',     roles: ['client'], end: true },
+  { to: '/policies/mine', icon: ShieldCheck,    label: 'Pólizas',         roles: ['admin', 'support'], end: true },
+];
+
+// Sección aparte, en la parte inferior de la barra (arriba del widget de
+// tickets activos), separada del menú principal.
+const BOTTOM_NAV_ITEMS = [
+  { to: '/admin/tasks', icon: ClipboardList, label: 'Tareas',   roles: ['admin'], end: true },
+  { to: '/admin/users', icon: Users,         label: 'Usuarios', roles: ['admin'], end: true },
 ];
 
 const Layout = () => {
@@ -61,6 +69,7 @@ const Layout = () => {
     .split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const visibleNav = NAV_ITEMS.filter((i) => i.roles.includes(user?.role));
+  const visibleBottomNav = BOTTOM_NAV_ITEMS.filter((i) => i.roles.includes(user?.role));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -155,6 +164,47 @@ const Layout = () => {
             </NavLink>
           ))}
         </nav>
+
+        {/* ── Sección inferior: Tareas / Usuarios (admin) ────── */}
+        {visibleBottomNav.length > 0 && (
+          <nav
+            className="shrink-0 py-2 px-2 space-y-0.5"
+            style={{ borderTop: '1px solid var(--gs-border)' }}
+          >
+            {visibleBottomNav.map(({ to, icon: Icon, label, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                title={collapsed ? label : undefined}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap overflow-hidden',
+                    collapsed ? 'w-10 h-10 mx-auto justify-center' : 'gap-3 px-3 py-2.5',
+                    isActive
+                      ? 'text-white'
+                      : 'gs-nav-inactive'
+                  )
+                }
+                style={({ isActive }) => isActive ? { background: 'var(--gs-cyan)' } : {}}
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!collapsed && (
+                      <>
+                        <span>{label}</span>
+                        {isActive && (
+                          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+        )}
 
         {/* ── Footer: conteo de tickets activos ────── */}
         {activeCount !== null && (

@@ -62,8 +62,8 @@ const StageBadge = ({ name }) => {
   );
 };
 
-const COLS_STAFF  = ['Ticket', 'Título', 'Cliente', 'Etapa', 'Prioridad', 'Responsable', 'Creado'];
-const COLS_CLIENT = ['Ticket', 'Título', 'Etapa', 'Prioridad', 'Responsable', 'Creado'];
+const COLS_STAFF  = ['Ticket', 'Título', 'Cliente', 'Etapa', 'Prioridad', 'Contacto', 'Responsable', 'Creado'];
+const COLS_CLIENT = ['Ticket', 'Título', 'Etapa', 'Prioridad', 'Contacto', 'Responsable', 'Creado'];
 
 // ─── Barra de filtros (sin selector de estado — siempre Activo) ───────────────
 const FilterBar = ({ filters, onChange, onClear, stages = [], clients = [], isStaff = false }) => {
@@ -187,7 +187,7 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
               title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
               onClick={() => onRowClick(c.incidentid)}
             >
-              <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap">
+              <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap w-[130px] max-w-[130px] truncate">
                 {c.ticketnumber}
               </td>
               <td className="px-4 py-3 font-medium max-w-[200px]">
@@ -203,6 +203,9 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
               </td>
               <td className="px-4 py-3">
                 <PriorityBadge code={c.prioritycode} />
+              </td>
+              <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap max-w-[140px] truncate">
+                {c.contactName || '—'}
               </td>
               <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs max-w-[140px] truncate">
                 {c.ownerName || '—'}

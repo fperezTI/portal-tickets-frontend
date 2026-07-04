@@ -20,3 +20,6 @@ export const listSystems = () =>
 
 export const listAreas = () =>
   client.get('/d365/areas').then((r) => r.data);
+
+export const searchSystemUsers = (search) =>
+  client.get('/d365/users', { params: { search } }).then((r) => r.data);
