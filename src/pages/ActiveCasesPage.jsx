@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import CaseStatusBadge from '../components/CaseStatusBadge';
-import { RefreshCw, Search, X, CircleDot } from 'lucide-react';
+import { RefreshCw, Search, X, CircleDot, Table as TableIcon, Kanban as KanbanIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DataTable from '../components/DataTable';
 
@@ -52,6 +52,13 @@ const stageColor = (name) => {
   if (m) return STAGE_PALETTE[parseInt(m[1]) - 1] ?? '#94A3B8';
   const lower = name.toLowerCase();
   return STAGE_KEYWORD_COLOR.find(({ kw }) => lower.includes(kw))?.color ?? '#94A3B8';
+};
+const STAGE_ORDER = ['approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
+const stageOrder = (name) => {
+  if (!name) return STAGE_ORDER.length;
+  const lower = name.toLowerCase();
+  const idx = STAGE_ORDER.findIndex((kw) => lower.includes(kw));
+  return idx === -1 ? STAGE_ORDER.length : idx;
 };
 const StageBadge = ({ name }) => {
   if (!name) return <span className="text-muted-foreground text-xs">—</span>;
@@ -197,6 +204,75 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
   );
 };
 
+// ─── Kanban (agrupado por etapa, solo lectura por ahora) ──────────────────────
+const KanbanCard = ({ c, onClick, isStaff }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      'w-full text-left rounded-lg border bg-card p-3 space-y-1.5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all',
+      c.cre2f_iswarranty && 'border-l-4 border-l-amber-400 bg-amber-50/60'
+    )}
+    title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
+  >
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-xs font-bold text-primary">{c.ticketnumber}</span>
+      <PriorityBadge code={c.prioritycode} />
+    </div>
+    <p className="text-sm font-medium line-clamp-2">{c.title}</p>
+    {isStaff && c.customerName && (
+      <p className="text-xs text-muted-foreground truncate">{c.customerName}</p>
+    )}
+    <div className="flex items-center justify-between gap-2 pt-1">
+      <span className="text-xs text-muted-foreground truncate">{c.contactName || '—'}</span>
+      <span className="text-xs text-muted-foreground whitespace-nowrap">
+        {c.createdon ? format(new Date(c.createdon), 'dd MMM', { locale: es }) : ''}
+      </span>
+    </div>
+  </button>
+);
+
+const KanbanBoard = ({ cases, onCardClick, isStaff }) => {
+  const columns = [];
+  const byStage = new Map();
+  cases.forEach((c) => {
+    const stage = c.activeStage || 'Sin etapa';
+    if (!byStage.has(stage)) byStage.set(stage, []);
+    byStage.get(stage).push(c);
+  });
+  [...byStage.entries()]
+    .sort(([a], [b]) => stageOrder(a) - stageOrder(b))
+    .forEach(([stage, items]) => columns.push({ stage, items }));
+
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-2" style={{ maxHeight: 'calc(100vh-260px)' }}>
+      {columns.map(({ stage, items }) => {
+        const color = stageColor(stage);
+        return (
+          <div key={stage} className="flex-shrink-0 w-72 flex flex-col rounded-lg bg-muted/40 border">
+            <div
+              className="flex items-center justify-between px-3 py-2.5 rounded-t-lg border-b sticky top-0 bg-muted/60 backdrop-blur"
+              style={{ borderTop: `3px solid ${color}` }}
+            >
+              <span className="text-sm font-semibold" style={{ color }}>{stage}</span>
+              <span className="text-xs font-medium text-muted-foreground bg-background rounded-full px-2 py-0.5">
+                {items.length}
+              </span>
+            </div>
+            <div className="p-2.5 space-y-2.5 overflow-y-auto">
+              {items.map((c) => (
+                <KanbanCard key={c.incidentid} c={c} isStaff={isStaff} onClick={() => onCardClick(c.incidentid)} />
+              ))}
+              {items.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">Sin tickets</p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // ─── Página ───────────────────────────────────────────────────────────────────
 const DEFAULT_FILTERS = { search: '', ticketNumber: '', priority: '', stage: '', clientId: '' };
 
@@ -212,6 +288,7 @@ const ActiveCasesPage = () => {
   const [nextLink, setNextLink] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'kanban'
 
   const fetchCases = useCallback(async (link = null) => {
     try {
@@ -269,6 +346,24 @@ const ActiveCasesPage = () => {
             <h1 className="text-xl font-semibold tracking-tight">Tickets Activos</h1>
           </div>
           <Badge variant="secondary" className="text-xs">Estado: Activo</Badge>
+          <div className="ml-auto flex items-center rounded-md border p-0.5 bg-muted/40">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setViewMode('grid')}
+            >
+              <TableIcon className="mr-1.5 h-3.5 w-3.5" /> Grid
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setViewMode('kanban')}
+            >
+              <KanbanIcon className="mr-1.5 h-3.5 w-3.5" /> Kanban
+            </Button>
+          </div>
         </div>
         <FilterBar
           filters={filters}
@@ -292,9 +387,9 @@ const ActiveCasesPage = () => {
         </Alert>
       )}
 
-      {/* Tabla */}
+      {/* Tabla / Kanban */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className={viewMode === 'kanban' ? 'p-3' : 'p-0'}>
           {/* Skeleton */}
           {loading && cases.length === 0 && (
             <div className="p-6 space-y-3">
@@ -312,7 +407,7 @@ const ActiveCasesPage = () => {
             </div>
           )}
 
-          {cases.length > 0 && (
+          {cases.length > 0 && viewMode === 'grid' && (
             <ActiveCasesTable
               cases={cases}
               onRowClick={(id) => navigate(`/cases/${id}`)}
@@ -320,8 +415,16 @@ const ActiveCasesPage = () => {
             />
           )}
 
+          {cases.length > 0 && viewMode === 'kanban' && (
+            <KanbanBoard
+              cases={cases}
+              onCardClick={(id) => navigate(`/cases/${id}`)}
+              isStaff={isStaff}
+            />
+          )}
+
           {nextLink && !loading && (
-            <div className="p-4 text-center border-t">
+            <div className={cn('text-center', viewMode === 'kanban' ? 'pt-3' : 'p-4 border-t')}>
               <Button variant="outline" size="sm" onClick={() => fetchCases(nextLink)}>
                 Cargar más tickets
               </Button>
