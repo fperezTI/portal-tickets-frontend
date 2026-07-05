@@ -17,6 +17,7 @@ import {
 import CaseStatusBadge from '../components/CaseStatusBadge';
 import { RefreshCw, Search, X, CircleDot } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DataTable from '../components/DataTable';
 
 const PRIORITY_COLOR = {
   0: { label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' },
@@ -61,9 +62,6 @@ const StageBadge = ({ name }) => {
     </span>
   );
 };
-
-const COLS_STAFF  = ['Ticket', 'Título', 'Cliente', 'Etapa', 'Prioridad', 'Contacto', 'Responsable', 'Creado'];
-const COLS_CLIENT = ['Ticket', 'Título', 'Etapa', 'Prioridad', 'Contacto', 'Responsable', 'Creado'];
 
 // ─── Barra de filtros (sin selector de estado — siempre Activo) ───────────────
 const FilterBar = ({ filters, onChange, onClear, stages = [], clients = [], isStaff = false }) => {
@@ -161,63 +159,41 @@ const FilterBar = ({ filters, onChange, onClear, stages = [], clients = [], isSt
 
 // ─── Tabla ────────────────────────────────────────────────────────────────────
 const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
-  const cols = isStaff ? COLS_STAFF : COLS_CLIENT;
+  const columns = [
+    { key: 'ticket', label: 'Ticket', width: 190, accessor: (c) => c.ticketnumber,
+      render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
+    { key: 'title', label: 'Título', width: 220, accessor: (c) => c.title,
+      render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
+    ...(isStaff ? [{
+      key: 'cliente', label: 'Cliente', width: 150, filterType: 'text',
+      accessor: (c) => c.customerName,
+      render: (c) => <span className="text-muted-foreground text-xs">{c.customerName || '—'}</span>,
+    }] : []),
+    { key: 'etapa', label: 'Etapa', width: 130, filterType: 'select',
+      accessor: (c) => c.activeStage, render: (c) => <StageBadge name={c.activeStage} /> },
+    { key: 'prioridad', label: 'Prioridad', width: 150, filterType: 'select',
+      accessor: (c) => PRIORITY_COLOR[c.prioritycode]?.label, render: (c) => <PriorityBadge code={c.prioritycode} /> },
+    { key: 'contacto', label: 'Contacto', width: 150, filterType: 'text',
+      accessor: (c) => c.contactName,
+      render: (c) => <span className="text-muted-foreground text-xs">{c.contactName || '—'}</span> },
+    { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
+      accessor: (c) => c.ownerName,
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
+    { key: 'creado', label: 'Creado', width: 110, filterType: 'none',
+      accessor: (c) => c.createdon ? new Date(c.createdon) : null,
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}</span> },
+  ];
 
   return (
-    <div className="overflow-y-auto max-h-[calc(100vh-260px)]">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur border-b">
-          <tr>
-            {cols.map((h) => (
-              <th key={h}
-                className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap first:pl-6">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {cases.map((c) => (
-            <tr
-              key={c.incidentid}
-              className={cn(
-                'cursor-pointer transition-colors',
-                c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30'
-              )}
-              title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
-              onClick={() => onRowClick(c.incidentid)}
-            >
-              <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap w-[130px] max-w-[130px] truncate">
-                {c.ticketnumber}
-              </td>
-              <td className="px-4 py-3 font-medium max-w-[200px]">
-                <span className="line-clamp-2">{c.title}</span>
-              </td>
-              {isStaff && (
-                <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap max-w-[160px] truncate">
-                  {c.customerName || '—'}
-                </td>
-              )}
-              <td className="px-4 py-3 whitespace-nowrap">
-                <StageBadge name={c.activeStage} />
-              </td>
-              <td className="px-4 py-3">
-                <PriorityBadge code={c.prioritycode} />
-              </td>
-              <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap max-w-[140px] truncate">
-                {c.contactName || '—'}
-              </td>
-              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs max-w-[140px] truncate">
-                {c.ownerName || '—'}
-              </td>
-              <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
-                {c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={cases}
+      getRowKey={(c) => c.incidentid}
+      getRowTitle={(c) => c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
+      getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
+      onRowClick={(c) => onRowClick(c.incidentid)}
+      maxHeight="calc(100vh-260px)"
+    />
   );
 };
 

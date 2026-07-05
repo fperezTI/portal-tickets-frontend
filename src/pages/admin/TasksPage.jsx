@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown, Loader2, RefreshCw, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import DataTable from '../../components/DataTable';
 
 // ─── Filtro multi-selección de usuarios ───────────────────────────────────────
 const UserMultiSelect = ({ selected, onChange }) => {
@@ -113,122 +114,149 @@ const toDatetimeLocal = (iso) => {
 };
 const fromDatetimeLocal = (local) => (local ? new Date(local).toISOString() : null);
 
-// ─── Fila editable ─────────────────────────────────────────────────────────────
-const TaskRow = ({ task, onSaved, onNavigate }) => {
+// ─── Celdas editables (cada una gestiona su propio estado + auto-guardado) ────
+const DueDateCell = ({ task, onSaved }) => {
   const [dueDateLocal, setDueDateLocal] = useState(toDatetimeLocal(task.dueDate));
-  const [billableHours, setBillableHours] = useState(task.billableHours ?? '');
-  const [reworkingHours, setReworkingHours] = useState(task.reworkingHours ?? '');
-  const [isAudit, setIsAudit] = useState(!!task.isAudit);
-  const [savingField, setSavingField] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const save = async (patch, revert) => {
-    setSavingField(Object.keys(patch)[0]);
+  const handleBlur = async () => {
+    const nextIso = fromDatetimeLocal(dueDateLocal);
+    if (nextIso === (task.dueDate || null)) return;
+    setSaving(true);
     try {
-      const updated = await updateTask(task.id, patch);
+      const updated = await updateTask(task.id, { dueDate: nextIso });
       onSaved(task.id, updated);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Error al guardar el cambio');
-      revert();
+      setDueDateLocal(toDatetimeLocal(task.dueDate));
     } finally {
-      setSavingField(null);
+      setSaving(false);
     }
   };
 
-  const handleDueDateBlur = () => {
-    const nextIso = fromDatetimeLocal(dueDateLocal);
-    if (nextIso === (task.dueDate || null)) return;
-    save({ dueDate: nextIso }, () => setDueDateLocal(toDatetimeLocal(task.dueDate)));
-  };
+  return (
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <Input
+        type="datetime-local"
+        value={dueDateLocal}
+        onChange={(e) => setDueDateLocal(e.target.value)}
+        onBlur={handleBlur}
+        className="h-8 text-xs w-[170px]"
+      />
+      {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
+    </div>
+  );
+};
 
-  const handleHoursBlur = () => {
-    const num = billableHours === '' ? null : parseFloat(billableHours);
-    if (num === (task.billableHours ?? null)) return;
-    save({ billableHours: num }, () => setBillableHours(task.billableHours ?? ''));
-  };
+const HoursCell = ({ task, field, onSaved }) => {
+  const [value, setValue] = useState(task[field] ?? '');
+  const [saving, setSaving] = useState(false);
 
-  const handleReworkingBlur = () => {
-    const num = reworkingHours === '' ? null : parseFloat(reworkingHours);
-    if (num === (task.reworkingHours ?? null)) return;
-    save({ reworkingHours: num }, () => setReworkingHours(task.reworkingHours ?? ''));
-  };
-
-  const handleAuditChange = (checked) => {
-    setIsAudit(checked);
-    save({ isAudit: checked }, () => setIsAudit(task.isAudit));
+  const handleBlur = async () => {
+    const num = value === '' ? null : parseFloat(value);
+    if (num === (task[field] ?? null)) return;
+    setSaving(true);
+    try {
+      const updated = await updateTask(task.id, { [field]: num });
+      onSaved(task.id, updated);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+      setValue(task[field] ?? '');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <tr className="hover:bg-muted/30 transition-colors">
-      <td className="pl-6 pr-4 py-2.5 max-w-[220px]">
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <Input
+        type="number"
+        step="0.25"
+        min="0"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleBlur}
+        className="h-8 text-xs w-20"
+      />
+      {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
+    </div>
+  );
+};
+
+const AuditCell = ({ task, onSaved }) => {
+  const [checked, setChecked] = useState(!!task.isAudit);
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (next) => {
+    setChecked(next);
+    setSaving(true);
+    try {
+      const updated = await updateTask(task.id, { isAudit: next });
+      onSaved(task.id, updated);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+      setChecked(task.isAudit);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <Switch checked={checked} onCheckedChange={handleChange} />
+      {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
+    </div>
+  );
+};
+
+// ─── Tabla ─────────────────────────────────────────────────────────────────────
+const TasksTable = ({ tasks, onSaved, onNavigate }) => {
+  const columns = [
+    { key: 'ticket', label: 'Ticket', width: 200, filterType: 'text',
+      accessor: (t) => t.regardingName,
+      render: (t) => (
         <button
-          onClick={() => onNavigate(task.regardingId)}
+          onClick={(e) => { e.stopPropagation(); onNavigate(t.regardingId); }}
           className="text-sm font-medium text-primary hover:underline text-left line-clamp-2"
-          title={task.regardingName}
+          title={t.regardingName}
         >
-          {task.regardingName || '—'}
+          {t.regardingName || '—'}
         </button>
-      </td>
-      <td className="px-4 py-2.5 max-w-[240px]">
-        <span className="text-sm line-clamp-2">{task.subject || '—'}</span>
-      </td>
-      <td className="px-4 py-2.5 text-sm text-muted-foreground whitespace-nowrap max-w-[160px] truncate">
-        {task.createdByName || '—'}
-      </td>
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="datetime-local"
-            value={dueDateLocal}
-            onChange={(e) => setDueDateLocal(e.target.value)}
-            onBlur={handleDueDateBlur}
-            className="h-8 text-xs w-[170px]"
-          />
-          {savingField === 'dueDate' && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-        </div>
-      </td>
-      <td className="px-4 py-2.5 text-sm text-muted-foreground whitespace-nowrap">
-        {task.durationHours != null ? `${task.durationHours} h` : '—'}
-      </td>
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="number"
-            step="0.25"
-            min="0"
-            value={billableHours}
-            onChange={(e) => setBillableHours(e.target.value)}
-            onBlur={handleHoursBlur}
-            className="h-8 text-xs w-20"
-          />
-          {savingField === 'billableHours' && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-        </div>
-      </td>
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <Input
-            type="number"
-            step="0.25"
-            min="0"
-            value={reworkingHours}
-            onChange={(e) => setReworkingHours(e.target.value)}
-            onBlur={handleReworkingBlur}
-            className="h-8 text-xs w-20"
-          />
-          {savingField === 'reworkingHours' && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-        </div>
-      </td>
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <Switch checked={isAudit} onCheckedChange={handleAuditChange} />
-          {savingField === 'isAudit' && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-        </div>
-      </td>
-    </tr>
+      ) },
+    { key: 'asunto', label: 'Asunto', width: 240, filterType: 'text',
+      accessor: (t) => t.subject,
+      render: (t) => <span className="text-sm line-clamp-2">{t.subject || '—'}</span> },
+    { key: 'creadopor', label: 'Creado por', width: 150, filterType: 'text',
+      accessor: (t) => t.createdByName,
+      render: (t) => <span className="text-sm text-muted-foreground whitespace-nowrap">{t.createdByName || '—'}</span> },
+    { key: 'fechalimite', label: 'Fecha límite', width: 190, filterType: 'none',
+      accessor: (t) => t.dueDate ? new Date(t.dueDate) : null,
+      render: (t) => <DueDateCell task={t} onSaved={onSaved} /> },
+    { key: 'duracion', label: 'Duración', width: 100, filterType: 'none',
+      accessor: (t) => t.durationHours,
+      render: (t) => <span className="text-sm text-muted-foreground whitespace-nowrap">{t.durationHours != null ? `${t.durationHours} h` : '—'}</span> },
+    { key: 'facturables', label: 'Horas facturables', width: 140, filterType: 'none',
+      accessor: (t) => t.billableHours,
+      render: (t) => <HoursCell task={t} field="billableHours" onSaved={onSaved} /> },
+    { key: 'reworking', label: 'Reworking', width: 120, filterType: 'none',
+      accessor: (t) => t.reworkingHours,
+      render: (t) => <HoursCell task={t} field="reworkingHours" onSaved={onSaved} /> },
+    { key: 'auditoria', label: 'Es auditoría', width: 110, filterType: 'select',
+      accessor: (t) => (t.isAudit ? 'Sí' : 'No'),
+      render: (t) => <AuditCell task={t} onSaved={onSaved} /> },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      data={tasks}
+      getRowKey={(t) => t.id}
+      maxHeight="calc(100vh-320px)"
+    />
   );
 };
 
 // ─── Página ────────────────────────────────────────────────────────────────────
-const COLS = ['Ticket', 'Asunto', 'Creado por', 'Fecha límite', 'Duración', 'Horas facturables', 'Reworking', 'Es auditoría'];
 
 const TasksPage = () => {
   const navigate = useNavigate();
@@ -351,24 +379,7 @@ const TasksPage = () => {
               No hay tareas con los filtros aplicados.
             </div>
           ) : (
-            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)]">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur border-b">
-                  <tr>
-                    {COLS.map((h) => (
-                      <th key={h} className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap first:pl-6">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {tasks.map((t) => (
-                    <TaskRow key={t.id} task={t} onSaved={handleSaved} onNavigate={(id) => navigate(`/cases/${id}`)} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <TasksTable tasks={tasks} onSaved={handleSaved} onNavigate={(id) => navigate(`/cases/${id}`)} />
           )}
 
           {nextLink && !loading && (

@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { RefreshCw, ShieldOff, Users } from 'lucide-react';
+import DataTable from '../components/DataTable';
 
 const STAFF_ROLES = ['admin', 'support'];
 
@@ -19,10 +20,14 @@ const STAFF_ROLES = ['admin', 'support'];
 // puede recorrer un día por la zona horaria del navegador. Se usa el valor ya
 // formateado por Dataverse (M/D/YYYY, el mismo que muestra Customer Service) y
 // solo se reordena a la convención visual de la app, sin pasar por Date/UTC.
-const fmtUSDate = (str) => {
+const parseUSDate = (str) => {
   if (!str) return null;
   const [m, d, y] = str.split('/').map(Number);
-  return format(new Date(y, m - 1, d), 'dd MMM yyyy', { locale: es });
+  return new Date(y, m - 1, d);
+};
+const fmtUSDate = (str) => {
+  const date = parseUSDate(str);
+  return date ? format(date, 'dd MMM yyyy', { locale: es }) : null;
 };
 
 // ─── Estado sin contacto/cuenta vinculada ─────────────────────────────────────
@@ -63,47 +68,41 @@ const PolicyStatusBadge = ({ statecode }) => {
 };
 
 // ─── Tabla ─────────────────────────────────────────────────────────────────────
-const COLS = ['Póliza', 'Fecha inicio', 'Fecha vencimiento', 'Precio unitario', 'Total de horas', 'Estado'];
+const PoliciesTable = ({ policies, onRowClick }) => {
+  const columns = [
+    { key: 'poliza', label: 'Póliza', width: 160, accessor: (p) => p.name,
+      render: (p) => <span className="text-sm font-bold">{p.name}</span> },
+    { key: 'inicio', label: 'Fecha inicio', width: 130, filterType: 'none',
+      accessor: (p) => parseUSDate(p.startDateFormatted),
+      render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.startDateFormatted) || '—'}</span> },
+    { key: 'vencimiento', label: 'Fecha vencimiento', width: 150, filterType: 'none',
+      accessor: (p) => parseUSDate(p.dueDateFormatted),
+      render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.dueDateFormatted) || '—'}</span> },
+    { key: 'precio', label: 'Precio unitario', width: 150, filterType: 'none',
+      accessor: (p) => p.unitPrice,
+      render: (p) => (
+        <span className="whitespace-nowrap">
+          {p.unitPrice != null ? `${p.unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} ${p.currency || ''}` : '—'}
+        </span>
+      ) },
+    { key: 'horas', label: 'Total de horas', width: 130, filterType: 'none',
+      accessor: (p) => p.totalHours,
+      render: (p) => <span className="whitespace-nowrap">{p.totalHours != null ? `${p.totalHours} h` : '—'}</span> },
+    { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
+      accessor: (p) => (p.statecode === 0 ? 'Activa' : 'Inactiva'),
+      render: (p) => <PolicyStatusBadge statecode={p.statecode} /> },
+  ];
 
-const PoliciesTable = ({ policies, onRowClick }) => (
-  <div className="overflow-y-auto max-h-[calc(100vh-260px)]">
-    <table className="w-full text-sm">
-      <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur border-b">
-        <tr>
-          {COLS.map((h) => (
-            <th key={h} className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap first:pl-6">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="divide-y">
-        {policies.map((p) => (
-          <tr key={p.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onRowClick(p.id)}>
-            <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap">{p.name}</td>
-            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-              {fmtUSDate(p.startDateFormatted) || '—'}
-            </td>
-            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-              {fmtUSDate(p.dueDateFormatted) || '—'}
-            </td>
-            <td className="px-4 py-3 whitespace-nowrap">
-              {p.unitPrice != null
-                ? `${p.unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} ${p.currency || ''}`
-                : '—'}
-            </td>
-            <td className="px-4 py-3 whitespace-nowrap">
-              {p.totalHours != null ? `${p.totalHours} h` : '—'}
-            </td>
-            <td className="px-4 py-3">
-              <PolicyStatusBadge statecode={p.statecode} />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+  return (
+    <DataTable
+      columns={columns}
+      data={policies}
+      getRowKey={(p) => p.id}
+      onRowClick={(p) => onRowClick(p.id)}
+      maxHeight="calc(100vh-260px)"
+    />
+  );
+};
 
 // ─── Página ────────────────────────────────────────────────────────────────────
 const MyPoliciesPage = () => {

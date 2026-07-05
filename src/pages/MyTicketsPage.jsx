@@ -19,6 +19,7 @@ import CaseStatusBadge from '../components/CaseStatusBadge';
 import { RefreshCw, Search, UserX, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import DataTable from '../components/DataTable';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
@@ -168,72 +169,52 @@ const FilterBar = ({ filters, onChange, onClear, stages = [] }) => {
 };
 
 // ─── Tabla de tickets ─────────────────────────────────────────────────────────
-const COLS = ['Ticket', 'Título', 'Etapa', 'Prioridad', 'Estado', 'Responsable', 'Creado', ''];
+const STATUS_LABEL = { 0: 'Activo', 1: 'Resuelto', 2: 'Cancelado' };
 
-const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => (
-  <div className="overflow-y-auto max-h-[calc(100vh-320px)]">
-    <table className="w-full text-sm">
-      <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur border-b">
-        <tr>
-          {COLS.map((h) => (
-            <th key={h}
-              className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap first:pl-6">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="divide-y">
-        {cases.map((c) => (
-          <tr
-            key={c.incidentid}
-            className={cn(
-              'cursor-pointer transition-colors',
-              c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30'
-            )}
-            title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
-            onClick={() => onRowClick(c.incidentid)}
-          >
-            <td className="pl-6 pr-4 py-3 text-sm font-bold whitespace-nowrap">
-              {c.ticketnumber}
-            </td>
-            <td className="px-4 py-3 font-medium max-w-[200px]">
-              <span className="line-clamp-2">{c.title}</span>
-            </td>
-            <td className="px-4 py-3 whitespace-nowrap">
-              <StageBadge name={c.activeStage} />
-            </td>
-            <td className="px-4 py-3">
-              <PriorityBadge code={c.prioritycode} />
-            </td>
-            <td className="px-4 py-3">
-              <CaseStatusBadge statecode={c.statecode} />
-            </td>
-            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs max-w-[140px] truncate">
-              {c.ownerName || '—'}
-            </td>
-            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">
-              {c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}
-            </td>
-            <td className="px-4 py-3 text-right">
-              {c.new_portal && c.statecode !== 2 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={(e) => { e.stopPropagation(); onDeleteClick(c); }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span className="sr-only">Eliminar</span>
-                </Button>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
+  const columns = [
+    { key: 'ticket', label: 'Ticket', width: 190, accessor: (c) => c.ticketnumber,
+      render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
+    { key: 'title', label: 'Título', width: 220, accessor: (c) => c.title,
+      render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
+    { key: 'etapa', label: 'Etapa', width: 130, filterType: 'select',
+      accessor: (c) => c.activeStage, render: (c) => <StageBadge name={c.activeStage} /> },
+    { key: 'prioridad', label: 'Prioridad', width: 150, filterType: 'select',
+      accessor: (c) => PRIORITY_COLOR[c.prioritycode]?.label, render: (c) => <PriorityBadge code={c.prioritycode} /> },
+    { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
+      accessor: (c) => STATUS_LABEL[c.statecode], render: (c) => <CaseStatusBadge statecode={c.statecode} /> },
+    { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
+      accessor: (c) => c.ownerName,
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
+    { key: 'creado', label: 'Creado', width: 110, filterType: 'none',
+      accessor: (c) => c.createdon ? new Date(c.createdon) : null,
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}</span> },
+    { key: 'accion', label: '', width: 60, sortable: false, filterType: 'none', accessor: () => null, className: 'text-right',
+      render: (c) => (c.new_portal && c.statecode !== 2 ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={(e) => { e.stopPropagation(); onDeleteClick(c); }}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          <span className="sr-only">Eliminar</span>
+        </Button>
+      ) : null) },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      data={cases}
+      getRowKey={(c) => c.incidentid}
+      getRowTitle={(c) => c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
+      getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
+      onRowClick={(c) => onRowClick(c.incidentid)}
+      maxHeight="calc(100vh-320px)"
+    />
+  );
+};
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 const DEFAULT_FILTERS = { search: '', ticketNumber: '', statecode: '0', priority: '', stage: '' };
