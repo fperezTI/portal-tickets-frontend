@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck, BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { to: '/cases',        icon: Ticket,          label: 'Tickets',         roles: ['admin', 'support', 'client'], end: true },
   { to: '/policies/mine', icon: ShieldCheck,    label: 'Mis Pólizas',     roles: ['client'], end: true },
   { to: '/policies/mine', icon: ShieldCheck,    label: 'Pólizas',         roles: ['admin', 'support'], end: true },
+  { to: '/consumption',  icon: BarChart3,       label: 'Consumo',        roles: ['admin', 'support', 'client'], end: true },
 ];
 
 // Sección aparte, en la parte inferior de la barra (arriba del widget de

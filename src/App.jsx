@@ -13,6 +13,7 @@ import NewCasePage from './pages/NewCasePage';
 import MyTicketsPage from './pages/MyTicketsPage';
 import MyPoliciesPage from './pages/MyPoliciesPage';
 import PolicyDetailPage from './pages/PolicyDetailPage';
+import ConsumptionPage from './pages/ConsumptionPage';
 import UsersPage from './pages/admin/UsersPage';
 import TasksPage from './pages/admin/TasksPage';
 
@@ -33,6 +34,7 @@ function App() {
               <Route path="/cases/mine"   element={<MyTicketsPage />} />
               <Route path="/policies/mine" element={<MyPoliciesPage />} />
               <Route path="/policies/:id"  element={<PolicyDetailPage />} />
+              <Route path="/consumption"  element={<ConsumptionPage />} />
               <Route path="/cases/:id"    element={<CaseDetailPage />} />
 
               {/* Rutas de administración */}

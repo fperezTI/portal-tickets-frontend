@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import D365Combobox from '../components/D365Combobox';
+import PolicyCombobox from '../components/PolicyCombobox';
 import { ArrowLeft, Lock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,6 +52,7 @@ const schema = z.object({
   contactId:         z.string().optional(),
   customerUserId:    z.string().optional(),
   origin:            z.string().optional(),
+  policyId:          z.string().optional(),
 });
 
 const CatalogSelect = ({ label, required, placeholder, options, value, onChange, error, loading, disabled }) => (
@@ -81,6 +83,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
 
   const ownAccountId = user?.d365AccountId || '';
   const ownContactId = user?.d365ContactId || '';
+  const [policyLabel, setPolicyLabel] = useState('');
 
   const {
     register,
@@ -102,6 +105,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
       customerAccountId: isStaff ? '' : ownAccountId,
       contactId:         isStaff ? '' : ownContactId,
       customerUserId:    isStaff ? '' : ownContactId,
+      policyId:          '',
     },
   });
 
@@ -128,6 +132,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
               contactId:         data.contactId || undefined,
               customerUserId:    data.customerUserId || undefined,
               origin:            data.origin ? parseInt(data.origin) : undefined,
+              policyId:          data.policyId || undefined,
             }
           : {}),
       });
@@ -267,6 +272,19 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
           </Select>
         </div>
       </div>
+
+      {isStaff && (
+        <div className="space-y-1.5">
+          <Label>Póliza (opcional)</Label>
+          <PolicyCombobox
+            value={watch('policyId')}
+            label={policyLabel}
+            onChange={(id, name) => { setValue('policyId', id); setPolicyLabel(name); }}
+            disabled={locked}
+            placeholder="Buscar póliza para vincular al ticket…"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">

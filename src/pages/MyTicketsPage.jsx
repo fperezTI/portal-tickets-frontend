@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import CaseStatusBadge from '../components/CaseStatusBadge';
 import { RefreshCw, Search, UserX, X, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, fmtHours } from '@/lib/utils';
 import { toast } from 'sonner';
 import DataTable from '../components/DataTable';
 
@@ -186,6 +186,9 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
     { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
       accessor: (c) => c.ownerName,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
+    { key: 'horas', label: 'Horas', width: 100, filterType: 'none',
+      accessor: (c) => c.billableHours ?? 0,
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.billableHours ? `${fmtHours(c.billableHours)}h` : '—'}</span> },
     { key: 'creado', label: 'Creado', width: 110, filterType: 'none',
       accessor: (c) => c.createdon ? new Date(c.createdon) : null,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}</span> },

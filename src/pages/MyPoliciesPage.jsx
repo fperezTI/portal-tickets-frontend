@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { RefreshCw, ShieldOff, Users } from 'lucide-react';
 import DataTable from '../components/DataTable';
+import { fmtHours } from '@/lib/utils';
 
 const STAFF_ROLES = ['admin', 'support'];
 
@@ -87,7 +88,7 @@ const PoliciesTable = ({ policies, onRowClick }) => {
       ) },
     { key: 'horas', label: 'Total de horas', width: 130, filterType: 'none',
       accessor: (p) => p.totalHours,
-      render: (p) => <span className="whitespace-nowrap">{p.totalHours != null ? `${p.totalHours} h` : '—'}</span> },
+      render: (p) => <span className="whitespace-nowrap">{p.totalHours != null ? `${fmtHours(p.totalHours)} h` : '—'}</span> },
     { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
       accessor: (p) => (p.statecode === 0 ? 'Activa' : 'Inactiva'),
       render: (p) => <PolicyStatusBadge statecode={p.statecode} /> },

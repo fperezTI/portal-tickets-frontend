@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronsUpDown, Loader2, RefreshCw, Search, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, fmtHours } from '@/lib/utils';
 import { toast } from 'sonner';
 import DataTable from '../../components/DataTable';
+import PolicyCombobox from '../../components/PolicyCombobox';
 
 // ─── Filtro multi-selección de usuarios ───────────────────────────────────────
 const UserMultiSelect = ({ selected, onChange }) => {
@@ -209,6 +210,39 @@ const AuditCell = ({ task, onSaved }) => {
   );
 };
 
+const PolicyCell = ({ task, onSaved }) => {
+  const [policyId, setPolicyId] = useState(task.policyId || '');
+  const [policyName, setPolicyName] = useState(task.policyName || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (nextId, nextName) => {
+    setSaving(true);
+    try {
+      const updated = await updateTask(task.id, { policyId: nextId || null });
+      setPolicyId(nextId);
+      setPolicyName(nextName);
+      onSaved(task.id, updated);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 w-44" onClick={(e) => e.stopPropagation()}>
+      <PolicyCombobox
+        value={policyId}
+        label={policyName}
+        onChange={handleChange}
+        disabled={saving}
+        placeholder="Heredada del ticket"
+      />
+      {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
+    </div>
+  );
+};
+
 // ─── Tabla ─────────────────────────────────────────────────────────────────────
 const TasksTable = ({ tasks, onSaved, onNavigate }) => {
   const columns = [
@@ -223,6 +257,9 @@ const TasksTable = ({ tasks, onSaved, onNavigate }) => {
           {t.regardingName || '—'}
         </button>
       ) },
+    { key: 'poliza', label: 'Póliza', width: 190, filterType: 'text',
+      accessor: (t) => t.policyName,
+      render: (t) => <PolicyCell task={t} onSaved={onSaved} /> },
     { key: 'asunto', label: 'Asunto', width: 240, filterType: 'text',
       accessor: (t) => t.subject,
       render: (t) => <span className="text-sm line-clamp-2">{t.subject || '—'}</span> },
@@ -234,7 +271,7 @@ const TasksTable = ({ tasks, onSaved, onNavigate }) => {
       render: (t) => <DueDateCell task={t} onSaved={onSaved} /> },
     { key: 'duracion', label: 'Duración', width: 100, filterType: 'none',
       accessor: (t) => t.durationHours,
-      render: (t) => <span className="text-sm text-muted-foreground whitespace-nowrap">{t.durationHours != null ? `${t.durationHours} h` : '—'}</span> },
+      render: (t) => <span className="text-sm text-muted-foreground whitespace-nowrap">{t.durationHours != null ? `${fmtHours(t.durationHours)} h` : '—'}</span> },
     { key: 'facturables', label: 'Horas facturables', width: 140, filterType: 'none',
       accessor: (t) => t.billableHours,
       render: (t) => <HoursCell task={t} field="billableHours" onSaved={onSaved} /> },

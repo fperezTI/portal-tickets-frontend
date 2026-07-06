@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getCaseDetail } from '../api/cases';
+import { getCaseDetail, updateCasePolicy } from '../api/cases';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,10 +11,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import CaseStatusBadge from '../components/CaseStatusBadge';
+import PolicyCombobox from '../components/PolicyCombobox';
 import {
   ArrowLeft, Mail, Phone, CheckSquare, StickyNote,
-  Calendar, FileText, Search, ChevronDown, ChevronUp, ShieldCheck,
+  Calendar, FileText, Search, ChevronDown, ChevronUp, ShieldCheck, Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { fmtHours } from '@/lib/utils';
+
+const STAFF_ROLES = ['admin', 'support'];
 
 // ─── Priority badge ────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
@@ -210,9 +216,12 @@ const Timeline = ({ items = [] }) => {
 const CaseDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isStaff = STAFF_ROLES.includes(user?.role);
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   useEffect(() => {
     getCaseDetail(id)
@@ -220,6 +229,19 @@ const CaseDetailPage = () => {
       .catch((err) => setError(err.response?.data?.error || 'Error al cargar el ticket'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handlePolicyChange = async (policyId, policyName) => {
+    setSavingPolicy(true);
+    try {
+      await updateCasePolicy(id, policyId || null);
+      setCaseData((prev) => ({ ...prev, policyId: policyId || null, policyName: policyName || null }));
+      toast.success(policyId ? 'Póliza vinculada al ticket' : 'Póliza desvinculada del ticket');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Error al actualizar la póliza');
+    } finally {
+      setSavingPolicy(false);
+    }
+  };
 
   if (loading) return (
     <div className="space-y-4">
@@ -309,6 +331,31 @@ const CaseDetailPage = () => {
                   {c.new_fechacierre ? format(new Date(c.new_fechacierre), "dd 'de' MMMM yyyy", { locale: es }) : null}
                 </Field>
               </div>
+              <Separator />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-muted-foreground text-xs mb-1.5 flex items-center gap-1.5">
+                    Póliza {savingPolicy && <Loader2 className="h-3 w-3 animate-spin" />}
+                  </p>
+                  {isStaff ? (
+                    <div className="max-w-xs">
+                      <PolicyCombobox
+                        value={c.policyId || ''}
+                        label={c.policyName || ''}
+                        onChange={handlePolicyChange}
+                        disabled={savingPolicy}
+                        placeholder="Sin póliza vinculada"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium">{c.policyName || <span className="text-muted-foreground font-normal">—</span>}</p>
+                  )}
+                </div>
+                <Field label="Total de horas">
+                  {c.billableHours ? `${fmtHours(c.billableHours)} h` : null}
+                </Field>
+              </div>
+
               {c.description && (
                 <>
                   <Separator />
