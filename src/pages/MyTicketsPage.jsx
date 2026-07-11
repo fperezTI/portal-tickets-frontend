@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { listMyCases, getStages, cancelCase } from '../api/cases';
+import { listMyCases, cancelCase } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,6 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import CaseStatusBadge from '../components/CaseStatusBadge';
 import { RefreshCw, Search, UserX, X, Trash2 } from 'lucide-react';
 import { cn, fmtHours } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -77,10 +76,10 @@ const NotLinkedState = () => (
 );
 
 // ─── Barra de filtros ─────────────────────────────────────────────────────────
-const FilterBar = ({ filters, onChange, onClear, stages = [] }) => {
+const FilterBar = ({ filters, onChange, onClear }) => {
   const [searchInput, setSearchInput] = useState(filters.search       || '');
   const [ticketInput, setTicketInput] = useState(filters.ticketNumber || '');
-  const hasActive = filters.search || filters.ticketNumber || filters.statecode !== '0' || filters.priority !== '' || filters.stage !== '';
+  const hasActive = filters.search || filters.ticketNumber || filters.priority !== '';
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
@@ -115,21 +114,6 @@ const FilterBar = ({ filters, onChange, onClear, stages = [] }) => {
       </form>
 
       <Select
-        value={filters.statecode || 'all'}
-        onValueChange={(v) => onChange('statecode', v === 'all' ? '' : v)}
-      >
-        <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Estado" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos los estados</SelectItem>
-          <SelectItem value="0">Activo</SelectItem>
-          <SelectItem value="1">Resuelto</SelectItem>
-          <SelectItem value="2">Cancelado</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select
         value={filters.priority || 'all'}
         onValueChange={(v) => onChange('priority', v === 'all' ? '' : v)}
       >
@@ -145,19 +129,6 @@ const FilterBar = ({ filters, onChange, onClear, stages = [] }) => {
         </SelectContent>
       </Select>
 
-      <Select
-        value={filters.stage || 'all'}
-        onValueChange={(v) => onChange('stage', v === 'all' ? '' : v)}
-      >
-        <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Etapa" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas las etapas</SelectItem>
-          {stages.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-        </SelectContent>
-      </Select>
-
       {hasActive && (
         <Button variant="ghost" size="sm" className="h-8 text-xs"
           onClick={() => { setSearchInput(''); setTicketInput(''); onClear(); }}>
@@ -169,8 +140,6 @@ const FilterBar = ({ filters, onChange, onClear, stages = [] }) => {
 };
 
 // ─── Tabla de tickets ─────────────────────────────────────────────────────────
-const STATUS_LABEL = { 0: 'Activo', 1: 'Resuelto', 2: 'Cancelado' };
-
 const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
   const columns = [
     { key: 'ticket', label: 'Ticket', width: 190, accessor: (c) => c.ticketnumber,
@@ -181,8 +150,6 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
       accessor: (c) => c.activeStage, render: (c) => <StageBadge name={c.activeStage} /> },
     { key: 'prioridad', label: 'Prioridad', width: 150, filterType: 'select',
       accessor: (c) => PRIORITY_COLOR[c.prioritycode]?.label, render: (c) => <PriorityBadge code={c.prioritycode} /> },
-    { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
-      accessor: (c) => STATUS_LABEL[c.statecode], render: (c) => <CaseStatusBadge statecode={c.statecode} /> },
     { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
       accessor: (c) => c.ownerName,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
@@ -220,7 +187,8 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
 };
 
 // ─── Página principal ─────────────────────────────────────────────────────────
-const DEFAULT_FILTERS = { search: '', ticketNumber: '', statecode: '0', priority: '', stage: '' };
+// Este menú solo muestra tickets activos — el estado ya no es un filtro editable.
+const DEFAULT_FILTERS = { search: '', ticketNumber: '', priority: '' };
 
 const MyTicketsPage = () => {
   const navigate = useNavigate();
@@ -228,16 +196,11 @@ const MyTicketsPage = () => {
   const hasCustomer = !!user?.d365ContactId;
 
   const [filters, setFilters]   = useState(DEFAULT_FILTERS);
-  const [stages, setStages]     = useState([]);
   const [cases, setCases]       = useState([]);
   const [nextLink, setNextLink] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [deleting, setDeleting] = useState(null); // ticket a cancelar
-
-  useEffect(() => {
-    getStages().then(setStages).catch(() => {});
-  }, []);
 
   const fetchCases = useCallback(async (link = null) => {
     if (!hasCustomer) return;
@@ -247,11 +210,10 @@ const MyTicketsPage = () => {
       const params = link
         ? { nextLink: link }
         : {
-            ...(filters.statecode  !== '' ? { statecode:    filters.statecode    } : {}),
+            statecode: 0, // solo tickets activos, fijo (no editable desde el filtro)
             ...(filters.priority   !== '' ? { priority:     filters.priority     } : {}),
             ...(filters.search           ? { search:        filters.search       } : {}),
             ...(filters.ticketNumber     ? { ticketNumber:  filters.ticketNumber } : {}),
-            ...(filters.stage            ? { stage:         filters.stage        } : {}),
           };
       const result = await listMyCases(params);
       setCases((prev) => (link ? [...prev, ...result.data] : result.data));
@@ -297,7 +259,6 @@ const MyTicketsPage = () => {
             filters={filters}
             onChange={handleFilterChange}
             onClear={() => setFilters(DEFAULT_FILTERS)}
-            stages={stages}
           />
         )}
       </div>

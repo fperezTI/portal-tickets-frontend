@@ -230,6 +230,13 @@ const CaseDetailPage = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Regresa a la página anterior real (Tickets, Mis Tickets, Consumo, etc.) en
+  // vez de siempre ir a /cases — así se conserva el estado/filtros de origen.
+  const handleBack = () => {
+    if (window.history.length > 2) navigate(-1);
+    else navigate('/cases');
+  };
+
   const handlePolicyChange = async (policyId, policyName) => {
     setSavingPolicy(true);
     try {
@@ -255,7 +262,7 @@ const CaseDetailPage = () => {
 
   if (error) return (
     <div className="max-w-xl space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/cases')}>
+      <Button variant="ghost" size="sm" onClick={() => handleBack()}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Volver
       </Button>
       <Alert variant="destructive">
@@ -270,7 +277,7 @@ const CaseDetailPage = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" className="mt-0.5 flex-shrink-0" onClick={() => navigate('/cases')}>
+        <Button variant="ghost" size="icon" className="mt-0.5 flex-shrink-0" onClick={() => handleBack()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1 min-w-0">

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { listMyPolicies, listPolicyCustomers } from '../api/policies';
@@ -79,16 +79,19 @@ const PoliciesTable = ({ policies, onRowClick }) => {
     { key: 'vencimiento', label: 'Fecha vencimiento', width: 150, filterType: 'none',
       accessor: (p) => parseUSDate(p.dueDateFormatted),
       render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.dueDateFormatted) || '—'}</span> },
-    { key: 'precio', label: 'Precio unitario', width: 150, filterType: 'none',
-      accessor: (p) => p.unitPrice,
-      render: (p) => (
-        <span className="whitespace-nowrap">
-          {p.unitPrice != null ? `${p.unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} ${p.currency || ''}` : '—'}
-        </span>
-      ) },
-    { key: 'horas', label: 'Total de horas', width: 130, filterType: 'none',
+    { key: 'contratadas', label: 'Horas contratadas', width: 150, filterType: 'none',
       accessor: (p) => p.totalHours,
       render: (p) => <span className="whitespace-nowrap">{p.totalHours != null ? `${fmtHours(p.totalHours)} h` : '—'}</span> },
+    { key: 'consumidas', label: 'Horas consumidas', width: 150, filterType: 'none',
+      accessor: (p) => p.consumedHours,
+      render: (p) => <span className="whitespace-nowrap">{p.consumedHours != null ? `${fmtHours(p.consumedHours)} h` : '—'}</span> },
+    { key: 'disponibles', label: 'Horas disponibles', width: 150, filterType: 'none',
+      accessor: (p) => (p.totalHours != null && p.consumedHours != null ? p.totalHours - p.consumedHours : null),
+      render: (p) => (
+        <span className="whitespace-nowrap font-medium">
+          {p.totalHours != null && p.consumedHours != null ? `${fmtHours(p.totalHours - p.consumedHours)} h` : '—'}
+        </span>
+      ) },
     { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
       accessor: (p) => (p.statecode === 0 ? 'Activa' : 'Inactiva'),
       render: (p) => <PolicyStatusBadge statecode={p.statecode} /> },
@@ -111,8 +114,18 @@ const MyPoliciesPage = () => {
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
 
+  // El cliente seleccionado vive en la URL (no en useState) para que, al
+  // volver desde el detalle de una póliza, se conserve el mismo cliente y
+  // listado en vez de reiniciar la página en blanco.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedClientId = searchParams.get('client') || '';
+  const setSelectedClientId = (clientId) => setSearchParams((prev) => {
+    const next = new URLSearchParams(prev);
+    if (clientId) next.set('client', clientId); else next.delete('client');
+    return next;
+  }, { replace: true });
+
   const [clients, setClients] = useState([]);
-  const [selectedClientId, setSelectedClientId] = useState('');
   const [policies, setPolicies] = useState([]);
   const [nextLink, setNextLink] = useState(null);
   const [loading, setLoading] = useState(false);

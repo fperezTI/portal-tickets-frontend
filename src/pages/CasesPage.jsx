@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { listCases, getStages } from '../api/cases';
+import { listCases } from '../api/cases';
 import { listUsers } from '../api/users';
 import { resolveAccount, resolveContact } from '../api/d365';
 import { useAuth } from '../context/AuthContext';
@@ -100,10 +100,10 @@ const ContactFilter = ({ value, onSearch }) => {
 };
 
 // ─── Barra de filtros ─────────────────────────────────────────────────────────
-const FilterBar = ({ filters, onChange, onClear, stages = [], clients = [], isStaff = false }) => {
+const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }) => {
   const [searchInput,  setSearchInput]  = useState(filters.search       || '');
   const [ticketInput,  setTicketInput]  = useState(filters.ticketNumber || '');
-  const hasActive = filters.search || filters.ticketNumber || filters.statecode !== '' || filters.priority !== '' || filters.stage !== '' || filters.clientId !== '';
+  const hasActive = filters.search || filters.ticketNumber || filters.statecode !== '' || filters.priority !== '' || filters.clientId !== '';
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
@@ -185,19 +185,6 @@ const FilterBar = ({ filters, onChange, onClear, stages = [], clients = [], isSt
         </SelectContent>
       </Select>
 
-      <Select
-        value={filters.stage || 'all'}
-        onValueChange={(v) => onChange('stage', v === 'all' ? '' : v)}
-      >
-        <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Etapa" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas las etapas</SelectItem>
-          {stages.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-        </SelectContent>
-      </Select>
-
       {hasActive && (
         <Button variant="ghost" size="sm" className="h-8 text-xs"
           onClick={() => { setSearchInput(''); setTicketInput(''); onClear(); }}>
@@ -256,7 +243,7 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
 };
 
 // ─── Página principal ─────────────────────────────────────────────────────────
-const DEFAULT_FILTERS = { search: '', ticketNumber: '', statecode: '', priority: '', stage: '', clientId: '' };
+const DEFAULT_FILTERS = { search: '', ticketNumber: '', statecode: '', priority: '', clientId: '' };
 
 const CasesPage = () => {
   const navigate = useNavigate();
@@ -264,7 +251,6 @@ const CasesPage = () => {
   const isStaff  = STAFF_ROLES.includes(user?.role);
 
   const [filters, setFilters]   = useState(DEFAULT_FILTERS);
-  const [stages, setStages]     = useState([]);
   const [clients, setClients]   = useState([]);
   const [cases, setCases]       = useState([]);
   const [nextLink, setNextLink] = useState(null);
@@ -274,10 +260,6 @@ const CasesPage = () => {
 
   const effectiveContactId = isStaff ? null : (user?.d365ContactId || user?.d365AccountId || '');
   const hasCustomer = isStaff || !!effectiveContactId;
-
-  useEffect(() => {
-    getStages().then(setStages).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!isStaff) return;
@@ -314,7 +296,6 @@ const CasesPage = () => {
             ...(filters.priority   !== '' ? { priority:     filters.priority     } : {}),
             ...(filters.search           ? { search:        filters.search       } : {}),
             ...(filters.ticketNumber     ? { ticketNumber:  filters.ticketNumber } : {}),
-            ...(filters.stage            ? { stage:         filters.stage        } : {}),
           };
       const result = await listCases(params);
       setCases((prev) => (link ? [...prev, ...result.data] : result.data));
@@ -354,7 +335,6 @@ const CasesPage = () => {
             filters={filters}
             onChange={handleFilterChange}
             onClear={() => setFilters(DEFAULT_FILTERS)}
-            stages={stages}
             clients={clients}
             isStaff={isStaff}
           />
