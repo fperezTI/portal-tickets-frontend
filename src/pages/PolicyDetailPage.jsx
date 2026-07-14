@@ -289,19 +289,24 @@ const PolicyDetailPage = () => {
   });
 
   const refreshAllocations = useCallback(async () => {
-    if (!isStaff) return;
     setAllocLoading(true);
     setAllocError('');
     try {
-      const [sugRes, allocRes] = await Promise.all([
-        getAllocationSuggestions(id),
-        listAllocations(id),
-      ]);
-      setSuggestions(sugRes.suggestions || []);
-      setUnmatched(sugRes.unmatched || []);
-      setAllocations(allocRes || []);
+      if (isStaff) {
+        const [sugRes, allocRes] = await Promise.all([
+          getAllocationSuggestions(id),
+          listAllocations(id),
+        ]);
+        setSuggestions(sugRes.suggestions || []);
+        setUnmatched(sugRes.unmatched || []);
+        setAllocations(allocRes || []);
+      } else {
+        // El cliente solo ve el ledger ya aceptado (tabla "Tickets vinculados a
+        // la póliza") — no sugerencias ni acciones, esas son solo de staff.
+        setAllocations(await listAllocations(id) || []);
+      }
     } catch (err) {
-      setAllocError(err.response?.data?.error || 'Error al cargar las sugerencias de asignación');
+      setAllocError(err.response?.data?.error || 'Error al cargar las asignaciones de horas');
     } finally {
       setAllocLoading(false);
     }
@@ -632,7 +637,7 @@ const PolicyDetailPage = () => {
       {/* Vista plana de todos los tickets ya vinculados (asignaciones aceptadas)
           a cualquier detalle de esta póliza — para ver de un vistazo qué se le
           ha asignado a la póliza completa, sin tener que abrir cada detalle. */}
-      {isStaff && !allocLoading && linkedTickets.length > 0 && (
+      {!allocLoading && linkedTickets.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <button
