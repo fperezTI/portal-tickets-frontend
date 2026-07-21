@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../hooks/useDateLocale';
 import { listCases } from '../api/cases';
 import { listUsers } from '../api/users';
 import { useAuth } from '../context/AuthContext';
@@ -20,17 +21,18 @@ import { cn, fmtHours } from '@/lib/utils';
 import DataTable from '../components/DataTable';
 
 const PRIORITY_COLOR = {
-  0: { label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' },
-  1: { label: 'Alta',    color: '#EA580C', bg: '#FFF7ED' },
-  2: { label: 'Normal',  color: '#1B3860', bg: '#EFF6FF' },
-  3: { label: 'Baja',    color: '#16A34A', bg: '#F0FDF4' },
+  0: { key: 'priority.critical', color: '#DC2626', bg: '#FEF2F2' },
+  1: { key: 'priority.high',     color: '#EA580C', bg: '#FFF7ED' },
+  2: { key: 'priority.normal',   color: '#1B3860', bg: '#EFF6FF' },
+  3: { key: 'priority.low',      color: '#16A34A', bg: '#F0FDF4' },
 };
 const PriorityBadge = ({ code }) => {
+  const { t } = useTranslation();
   const p = PRIORITY_COLOR[code];
   if (!p) return <span className="text-muted-foreground text-xs">—</span>;
   return (
     <span style={{ color: p.color, background: p.bg, borderRadius: 9999, padding: '2px 10px', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>
-      {p.label}
+      {t(p.key)}
     </span>
   );
 };
@@ -72,6 +74,7 @@ const StageBadge = ({ name }) => {
 
 // ─── Barra de filtros (sin selector de estado — siempre Activo) ───────────────
 const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }) => {
+  const { t } = useTranslation();
   const [searchInput, setSearchInput] = useState(filters.search       || '');
   const [ticketInput, setTicketInput] = useState(filters.ticketNumber || '');
   const hasActive = filters.search || filters.ticketNumber || filters.priority !== '' || filters.clientId !== '';
@@ -83,7 +86,7 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         className="flex gap-1.5"
       >
         <Input
-          placeholder="Buscar por título…"
+          placeholder={t('cases.searchByTitle')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="w-48 h-8 text-sm"
@@ -98,7 +101,7 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         className="flex gap-1.5"
       >
         <Input
-          placeholder="No. de ticket…"
+          placeholder={t('cases.ticketNumberPlaceholder')}
           value={ticketInput}
           onChange={(e) => setTicketInput(e.target.value)}
           className="w-40 h-8 text-sm font-mono"
@@ -114,10 +117,10 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
           onValueChange={(v) => onChange('clientId', v === 'all' ? '' : v)}
         >
           <SelectTrigger className="w-44 h-8 text-sm">
-            <SelectValue placeholder="Cliente" />
+            <SelectValue placeholder={t('cases.client')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
+            <SelectItem value="all">{t('cases.allClients')}</SelectItem>
             {clients.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>
             ))}
@@ -130,21 +133,21 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         onValueChange={(v) => onChange('priority', v === 'all' ? '' : v)}
       >
         <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Prioridad" />
+          <SelectValue placeholder={t('table.priority')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todas las prioridades</SelectItem>
-          <SelectItem value="0">Crítica</SelectItem>
-          <SelectItem value="1">Alta</SelectItem>
-          <SelectItem value="2">Normal</SelectItem>
-          <SelectItem value="3">Baja</SelectItem>
+          <SelectItem value="all">{t('cases.allPriorities')}</SelectItem>
+          <SelectItem value="0">{t('priority.critical')}</SelectItem>
+          <SelectItem value="1">{t('priority.high')}</SelectItem>
+          <SelectItem value="2">{t('priority.normal')}</SelectItem>
+          <SelectItem value="3">{t('priority.low')}</SelectItem>
         </SelectContent>
       </Select>
 
       {hasActive && (
         <Button variant="ghost" size="sm" className="h-8 text-xs"
           onClick={() => { setSearchInput(''); setTicketInput(''); onClear(); }}>
-          <X className="mr-1 h-3.5 w-3.5" /> Limpiar
+          <X className="mr-1 h-3.5 w-3.5" /> {t('common.clear')}
         </Button>
       )}
     </div>
@@ -153,32 +156,34 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
 
 // ─── Tabla ────────────────────────────────────────────────────────────────────
 const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const columns = [
-    { key: 'ticket', label: 'Ticket', width: 190, accessor: (c) => c.ticketnumber,
+    { key: 'ticket', label: t('table.ticket'), width: 190, accessor: (c) => c.ticketnumber,
       render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
-    { key: 'title', label: 'Título', width: 220, accessor: (c) => c.title,
+    { key: 'title', label: t('table.title'), width: 220, accessor: (c) => c.title,
       render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
     ...(isStaff ? [{
-      key: 'cliente', label: 'Cliente', width: 150, filterType: 'text',
+      key: 'cliente', label: t('table.customer'), width: 150, filterType: 'text',
       accessor: (c) => c.customerName,
       render: (c) => <span className="text-muted-foreground text-xs">{c.customerName || '—'}</span>,
     }] : []),
-    { key: 'etapa', label: 'Etapa', width: 130, filterType: 'select',
+    { key: 'etapa', label: t('table.stage'), width: 130, filterType: 'select',
       accessor: (c) => c.activeStage, render: (c) => <StageBadge name={c.activeStage} /> },
-    { key: 'prioridad', label: 'Prioridad', width: 150, filterType: 'select',
-      accessor: (c) => PRIORITY_COLOR[c.prioritycode]?.label, render: (c) => <PriorityBadge code={c.prioritycode} /> },
-    { key: 'contacto', label: 'Contacto', width: 150, filterType: 'text',
+    { key: 'prioridad', label: t('table.priority'), width: 150, filterType: 'select',
+      accessor: (c) => PRIORITY_COLOR[c.prioritycode] ? t(PRIORITY_COLOR[c.prioritycode].key) : null, render: (c) => <PriorityBadge code={c.prioritycode} /> },
+    { key: 'contacto', label: t('table.contact'), width: 150, filterType: 'text',
       accessor: (c) => c.contactName,
       render: (c) => <span className="text-muted-foreground text-xs">{c.contactName || '—'}</span> },
-    { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
+    { key: 'responsable', label: t('table.owner'), width: 150, filterType: 'text',
       accessor: (c) => c.ownerName,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
-    { key: 'horas', label: 'Horas', width: 100, filterType: 'none',
+    { key: 'horas', label: t('table.hours'), width: 100, filterType: 'none',
       accessor: (c) => c.billableHours ?? 0,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.billableHours ? `${fmtHours(c.billableHours)}h` : '—'}</span> },
-    { key: 'creado', label: 'Creado', width: 110, filterType: 'none',
+    { key: 'creado', label: t('table.created'), width: 110, filterType: 'none',
       accessor: (c) => c.createdon ? new Date(c.createdon) : null,
-      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}</span> },
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: dateLocale }) : '—'}</span> },
   ];
 
   return (
@@ -186,7 +191,7 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
       columns={columns}
       data={cases}
       getRowKey={(c) => c.incidentid}
-      getRowTitle={(c) => c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
+      getRowTitle={(c) => c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
       getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
       onRowClick={(c) => onRowClick(c.incidentid)}
       maxHeight="calc(100vh-260px)"
@@ -195,37 +200,42 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
 };
 
 // ─── Kanban (agrupado por etapa, solo lectura por ahora) ──────────────────────
-const KanbanCard = ({ c, onClick, isStaff }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      'w-full text-left rounded-lg border bg-card p-3 space-y-1.5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all',
-      c.cre2f_iswarranty && 'border-l-4 border-l-amber-400 bg-amber-50/60'
-    )}
-    title={c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
-  >
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-xs font-bold text-primary">{c.ticketnumber}</span>
-      <PriorityBadge code={c.prioritycode} />
-    </div>
-    <p className="text-sm font-medium line-clamp-2">{c.title}</p>
-    {isStaff && c.customerName && (
-      <p className="text-xs text-muted-foreground truncate">{c.customerName}</p>
-    )}
-    <div className="flex items-center justify-between gap-2 pt-1">
-      <span className="text-xs text-muted-foreground truncate">{c.contactName || '—'}</span>
-      <span className="text-xs text-muted-foreground whitespace-nowrap">
-        {c.createdon ? format(new Date(c.createdon), 'dd MMM', { locale: es }) : ''}
-      </span>
-    </div>
-  </button>
-);
+const KanbanCard = ({ c, onClick, isStaff }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left rounded-lg border bg-card p-3 space-y-1.5 shadow-sm hover:shadow-md hover:border-primary/40 transition-all',
+        c.cre2f_iswarranty && 'border-l-4 border-l-amber-400 bg-amber-50/60'
+      )}
+      title={c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold text-primary">{c.ticketnumber}</span>
+        <PriorityBadge code={c.prioritycode} />
+      </div>
+      <p className="text-sm font-medium line-clamp-2">{c.title}</p>
+      {isStaff && c.customerName && (
+        <p className="text-xs text-muted-foreground truncate">{c.customerName}</p>
+      )}
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <span className="text-xs text-muted-foreground truncate">{c.contactName || '—'}</span>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {c.createdon ? format(new Date(c.createdon), 'dd MMM', { locale: dateLocale }) : ''}
+        </span>
+      </div>
+    </button>
+  );
+};
 
 const KanbanBoard = ({ cases, onCardClick, isStaff }) => {
+  const { t } = useTranslation();
   const columns = [];
   const byStage = new Map();
   cases.forEach((c) => {
-    const stage = c.activeStage || 'Sin etapa';
+    const stage = c.activeStage || t('cases.noStage');
     if (!byStage.has(stage)) byStage.set(stage, []);
     byStage.get(stage).push(c);
   });
@@ -253,7 +263,7 @@ const KanbanBoard = ({ cases, onCardClick, isStaff }) => {
                 <KanbanCard key={c.incidentid} c={c} isStaff={isStaff} onClick={() => onCardClick(c.incidentid)} />
               ))}
               {items.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-6">Sin tickets</p>
+                <p className="text-xs text-muted-foreground text-center py-6">{t('cases.noTickets')}</p>
               )}
             </div>
           </div>
@@ -267,6 +277,7 @@ const KanbanBoard = ({ cases, onCardClick, isStaff }) => {
 const DEFAULT_FILTERS = { search: '', ticketNumber: '', priority: '', clientId: '' };
 
 const ActiveCasesPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
@@ -298,11 +309,11 @@ const ActiveCasesPage = () => {
       setCases((prev) => (link ? [...prev, ...result.data] : result.data));
       setNextLink(result.nextLink);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar los tickets');
+      setError(err.response?.data?.error || t('cases.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [filters, clients]);
+  }, [filters, clients, t]);
 
   useEffect(() => {
     if (!isStaff) return;
@@ -327,9 +338,9 @@ const ActiveCasesPage = () => {
         <div className="flex items-center gap-3 flex-wrap pt-2">
           <div className="flex items-center gap-2">
             <CircleDot className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-semibold tracking-tight">Tickets Activos</h1>
+            <h1 className="text-xl font-semibold tracking-tight">{t('nav.activeTickets')}</h1>
           </div>
-          <Badge variant="secondary" className="text-xs">Estado: Activo</Badge>
+          <Badge variant="secondary" className="text-xs">{t('cases.statusActiveBadge')}</Badge>
           <div className="ml-auto flex items-center rounded-md border p-0.5 bg-muted/40">
             <Button
               variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
@@ -337,7 +348,7 @@ const ActiveCasesPage = () => {
               className="h-7 px-2.5 text-xs"
               onClick={() => setViewMode('grid')}
             >
-              <TableIcon className="mr-1.5 h-3.5 w-3.5" /> Grid
+              <TableIcon className="mr-1.5 h-3.5 w-3.5" /> {t('cases.gridView')}
             </Button>
             <Button
               variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
@@ -345,7 +356,7 @@ const ActiveCasesPage = () => {
               className="h-7 px-2.5 text-xs"
               onClick={() => setViewMode('kanban')}
             >
-              <KanbanIcon className="mr-1.5 h-3.5 w-3.5" /> Kanban
+              <KanbanIcon className="mr-1.5 h-3.5 w-3.5" /> {t('cases.kanbanView')}
             </Button>
           </div>
         </div>
@@ -386,7 +397,7 @@ const ActiveCasesPage = () => {
           {!loading && cases.length === 0 && !error && (
             <div className="py-14 text-center">
               <CircleDot className="mx-auto h-8 w-8 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">No hay tickets activos con los filtros aplicados.</p>
+              <p className="text-sm text-muted-foreground">{t('cases.noActiveResults')}</p>
             </div>
           )}
 
@@ -409,7 +420,7 @@ const ActiveCasesPage = () => {
           {nextLink && !loading && (
             <div className={cn('text-center', viewMode === 'kanban' ? 'pt-3' : 'p-4 border-t')}>
               <Button variant="outline" size="sm" onClick={() => fetchCases(nextLink)}>
-                Cargar más tickets
+                {t('cases.loadMore')}
               </Button>
             </div>
           )}

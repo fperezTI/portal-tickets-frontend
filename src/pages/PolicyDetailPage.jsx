@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../hooks/useDateLocale';
 import { useAuth } from '../context/AuthContext';
 import {
   getPolicyDetail, getAllocationSuggestions, listAllocations, createAllocations, deactivateAllocation,
@@ -21,6 +22,7 @@ import { fmtHours, cn } from '@/lib/utils';
 
 // ─── Badge de estado ───────────────────────────────────────────────────────────
 const StatusBadge = ({ statecode }) => {
+  const { t } = useTranslation();
   const active = statecode === 0;
   return (
     <span
@@ -29,7 +31,7 @@ const StatusBadge = ({ statecode }) => {
         ? { background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }
         : { background: '#F4F4F5', color: '#71717A', border: '1px solid #E4E4E7' }}
     >
-      {active ? 'Activa' : 'Inactiva'}
+      {active ? t('policies.active') : t('policies.inactive')}
     </span>
   );
 };
@@ -51,31 +53,31 @@ const parseUSDate = (str) => {
   const [m, d, y] = str.split('/').map(Number);
   return new Date(y, m - 1, d);
 };
-const fmtDate = (str) => {
+const fmtDate = (str, locale) => {
   const date = parseUSDate(str);
-  return date ? format(date, 'dd MMM yyyy', { locale: es }) : null;
+  return date ? format(date, 'dd MMM yyyy', { locale }) : null;
 };
 
 // El backend expone la fecha límite de la tarea sin ambigüedad de huso horario
 // como clave "YYYY-MM-DD" (no un ISO con hora) — se formatea igual que fmtDate
 // pero sin pasar por new Date(iso).
-const fmtDayKey = (key) => {
+const fmtDayKey = (key, locale) => {
   if (!key) return null;
   const [y, m, d] = key.split('-').map(Number);
-  return format(new Date(y, m - 1, d), 'dd MMM yyyy', { locale: es });
+  return format(new Date(y, m - 1, d), 'dd MMM yyyy', { locale });
 };
 
 // "YYYY-MM" -> "diciembre 2025"
-const fmtMonthKey = (key) => {
+const fmtMonthKey = (key, locale) => {
   if (!key) return null;
   const [y, m] = key.split('-').map(Number);
-  return format(new Date(y, m - 1, 1), 'MMMM yyyy', { locale: es });
+  return format(new Date(y, m - 1, 1), 'MMMM yyyy', { locale });
 };
 
-const UNMATCHED_REASON_LABEL = {
-  no_period:   'Sin periodo que coincida con su fecha límite',
-  no_duedate:  'La tarea no tiene fecha límite',
-  no_capacity: 'Sin capacidad disponible en ningún periodo posterior',
+const UNMATCHED_REASON_KEY = {
+  no_period:   'policyDetail.reasonNoPeriod',
+  no_duedate:  'policyDetail.reasonNoDueDate',
+  no_capacity: 'policyDetail.reasonNoCapacity',
 };
 
 // ─── Panel de asignación de un detalle específico (expandido bajo su fila) ────
@@ -84,6 +86,8 @@ const UNMATCHED_REASON_LABEL = {
 // con la que se les asignaron las horas cuando la capacidad del periodo no
 // alcanza para todos.
 const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, setHoursOverride, busyKeys, onAccept, onAcceptAll, onUndo, onUnassignAll }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const key = (s) => `${s.ticketId}|${s.supportPolicyDetailId}`;
   const isFull = detail.statecode === 1;
 
@@ -97,27 +101,27 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
     <div className="space-y-4 py-3">
       {isFull && (
         <p className="text-xs font-medium text-muted-foreground">
-          Este detalle ya completó sus horas disponibles y quedó marcado como Inactivo.
+          {t('policyDetail.detailFull')}
         </p>
       )}
 
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-medium">
-            Tickets propuestos ({suggestions.length})
+            {t('policyDetail.proposedTickets', { count: suggestions.length })}
             {suggestions.length > 0 && (
-              <span className="ml-2 font-normal text-muted-foreground">· {fmtHours(totalSuggestedHours)}h en total</span>
+              <span className="ml-2 font-normal text-muted-foreground">· {t('policyDetail.totalHoursSuffix', { hours: fmtHours(totalSuggestedHours) })}</span>
             )}
           </p>
           {suggestions.length > 0 && (
             <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => onAcceptAll(suggestions)} disabled={busyKeys.has('__all__')}>
               {busyKeys.has('__all__') ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-              Aceptar todas
+              {t('policyDetail.acceptAll')}
             </Button>
           )}
         </div>
         {suggestions.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">No hay horas billables pendientes de asignar a este detalle.</p>
+          <p className="text-sm text-muted-foreground py-2">{t('policyDetail.noPendingHours')}</p>
         ) : (
           <div className="space-y-2">
             {suggestions.map((s) => {
@@ -137,12 +141,12 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
                       {s.ticketTitle && <span className="ml-1.5 font-normal text-muted-foreground">— {s.ticketTitle}</span>}
                     </p>
                     {s.month && (
-                      <p className="text-xs text-muted-foreground capitalize">{fmtMonthKey(s.month)}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{fmtMonthKey(s.month, dateLocale)}</p>
                     )}
                     {s.isWarranty ? (
-                      <p className="text-xs text-amber-700">Ticket de garantía — se vincula sin consumir horas de la póliza</p>
+                      <p className="text-xs text-amber-700">{t('policyDetail.warrantyLinkNote')}</p>
                     ) : s.acceptedHours > 0 && (
-                      <p className="text-xs text-muted-foreground">{fmtHours(s.acceptedHours)}h ya aceptadas en este detalle</p>
+                      <p className="text-xs text-muted-foreground">{t('policyDetail.alreadyAcceptedHours', { hours: fmtHours(s.acceptedHours) })}</p>
                     )}
                   </div>
                   {s.isWarranty ? (
@@ -162,7 +166,7 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
                   )}
                   <Button size="sm" variant="secondary" className="h-8 text-xs" onClick={() => onAccept(s)} disabled={busyKeys.has(k)}>
                     {busyKeys.has(k) ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-                    Aceptar
+                    {t('policyDetail.accept')}
                   </Button>
                 </div>
               );
@@ -173,7 +177,7 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium">Asignados a este detalle ({accepted.length})</p>
+          <p className="text-sm font-medium">{t('policyDetail.assignedToDetail', { count: accepted.length })}</p>
           {accepted.length > 0 && (
             <Button
               size="sm"
@@ -183,12 +187,12 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
               disabled={busyKeys.has('__unassign_all__')}
             >
               {busyKeys.has('__unassign_all__') ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Undo2 className="mr-1.5 h-3.5 w-3.5" />}
-              Desasignar todas
+              {t('policyDetail.unassignAll')}
             </Button>
           )}
         </div>
         {accepted.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">Aún no hay horas asignadas a este detalle.</p>
+          <p className="text-sm text-muted-foreground py-2">{t('policyDetail.noHoursAssignedYet')}</p>
         ) : (
           <div className="space-y-1.5">
             {accepted.map((a) => (
@@ -219,6 +223,8 @@ const STAFF_ROLES = ['admin', 'support'];
 
 // ─── Página ────────────────────────────────────────────────────────────────────
 const PolicyDetailPage = () => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -246,25 +252,25 @@ const PolicyDetailPage = () => {
   const fetchPolicy = useCallback(() => (
     getPolicyDetail(id)
       .then(setPolicy)
-      .catch((err) => setError(err.response?.data?.error || 'Error al cargar la póliza'))
+      .catch((err) => setError(err.response?.data?.error || t('policyDetail.loadError')))
       .finally(() => setLoading(false))
-  ), [id]);
+  ), [id, t]);
 
   useEffect(() => { fetchPolicy(); }, [fetchPolicy]);
 
   const handleToggleStatus = async () => {
     const activating = policy.statecode !== 0;
     const msg = activating
-      ? `¿Reactivar la póliza ${policy.name}?`
-      : `¿Desactivar la póliza ${policy.name}? Dejará de estar disponible para nuevas asignaciones de horas.`;
+      ? t('policyDetail.confirmReactivate', { name: policy.name })
+      : t('policyDetail.confirmDeactivate', { name: policy.name });
     if (!(await askConfirm(msg))) return;
     setStatusBusy(true);
     try {
       const updated = await updatePolicyStatus(id, activating);
       setPolicy((prev) => ({ ...prev, statecode: updated.statecode }));
-      toast.success(activating ? 'Póliza reactivada' : 'Póliza desactivada');
+      toast.success(activating ? t('policyDetail.reactivatedToast') : t('policyDetail.deactivatedToast'));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al cambiar el estado de la póliza');
+      toast.error(err.response?.data?.error || t('policyDetail.statusChangeError'));
     } finally {
       setStatusBusy(false);
     }
@@ -306,11 +312,11 @@ const PolicyDetailPage = () => {
         setAllocations(await listAllocations(id) || []);
       }
     } catch (err) {
-      setAllocError(err.response?.data?.error || 'Error al cargar las asignaciones de horas');
+      setAllocError(err.response?.data?.error || t('policyDetail.loadAllocationsError'));
     } finally {
       setAllocLoading(false);
     }
-  }, [id, isStaff]);
+  }, [id, isStaff, t]);
 
   useEffect(() => { refreshAllocations(); }, [refreshAllocations]);
 
@@ -321,9 +327,9 @@ const PolicyDetailPage = () => {
     setRecalcBusy(true);
     try {
       await refreshAll();
-      toast.success('Sugerencias recalculadas');
+      toast.success(t('policyDetail.recalculatedToast'));
     } catch (err) {
-      toast.error('Error al recalcular las sugerencias');
+      toast.error(t('policyDetail.recalculateError'));
     } finally {
       setRecalcBusy(false);
     }
@@ -381,14 +387,16 @@ const PolicyDetailPage = () => {
   const handleAccept = async (s) => {
     const k = `${s.ticketId}|${s.supportPolicyDetailId}`;
     const hours = s.isWarranty ? 0 : parseFloat(hoursOverride[k] ?? s.suggestedHours);
-    if (!s.isWarranty && !(hours > 0)) { toast.error('Las horas deben ser mayores a 0'); return; }
+    if (!s.isWarranty && !(hours > 0)) { toast.error(t('policyDetail.hoursMustBePositive')); return; }
     setBusy(k, true);
     try {
       await createAllocations(id, [{ ticketId: s.ticketId, supportPolicyDetailId: s.supportPolicyDetailId, hours, month: s.month }]);
-      toast.success(s.isWarranty ? `${s.ticketNumber || 'Ticket'} vinculado (garantía, 0h)` : `${hours}h asignadas a ${s.ticketNumber || 'ticket'}`);
+      toast.success(s.isWarranty
+        ? t('policyDetail.warrantyLinkedToast', { ticket: s.ticketNumber || t('policyDetail.genericTicket') })
+        : t('policyDetail.hoursAssignedToast', { hours, ticket: s.ticketNumber || t('policyDetail.genericTicketLower') }));
       await refreshAll();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al aceptar la asignación');
+      toast.error(err.response?.data?.error || t('policyDetail.acceptError'));
       if (err.response?.status === 409) await refreshAll();
     } finally {
       setBusy(k, false);
@@ -405,10 +413,10 @@ const PolicyDetailPage = () => {
         hours: s.isWarranty ? 0 : parseFloat(hoursOverride[`${s.ticketId}|${s.supportPolicyDetailId}`] ?? s.suggestedHours),
         month: s.month,
       })));
-      toast.success('Sugerencias aceptadas');
+      toast.success(t('policyDetail.suggestionsAcceptedToast'));
       await refreshAll();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al aceptar las sugerencias');
+      toast.error(err.response?.data?.error || t('policyDetail.acceptAllError'));
       await refreshAll();
     } finally {
       setBusy('__all__', false);
@@ -419,25 +427,25 @@ const PolicyDetailPage = () => {
     setBusy(allocation.id, true);
     try {
       await deactivateAllocation(id, allocation.id);
-      toast.success('Asignación deshecha');
+      toast.success(t('policyDetail.undoneToast'));
       await refreshAll();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al deshacer la asignación');
+      toast.error(err.response?.data?.error || t('policyDetail.undoError'));
     } finally {
       setBusy(allocation.id, false);
     }
   };
 
   const handleUnassignAll = async (detailId, detailName) => {
-    const ok = await askConfirm(`¿Desasignar todas las horas ya aceptadas del detalle ${detailName}? Esta acción no se puede deshacer individualmente.`);
+    const ok = await askConfirm(t('policyDetail.confirmUnassignAll', { name: detailName }));
     if (!ok) return;
     setBusy('__unassign_all__', true);
     try {
       const { deactivated } = await deactivateAllocationsForDetail(id, detailId);
-      toast.success(`${deactivated} asignación(es) desasignadas`);
+      toast.success(t('policyDetail.unassignedCountToast', { count: deactivated }));
       await refreshAll();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al desasignar las horas del detalle');
+      toast.error(err.response?.data?.error || t('policyDetail.unassignAllError'));
     } finally {
       setBusy('__unassign_all__', false);
     }
@@ -454,7 +462,7 @@ const PolicyDetailPage = () => {
   if (error) return (
     <div className="max-w-xl space-y-4">
       <Button variant="ghost" size="sm" onClick={handleBack}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Volver
+        <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
       </Button>
       <Alert variant="destructive">
         <AlertDescription>{error}</AlertDescription>
@@ -472,7 +480,7 @@ const PolicyDetailPage = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground font-mono">Póliza</p>
+          <p className="text-sm text-muted-foreground font-mono">{t('policyDetail.policyLabel')}</p>
           <h1 className="text-xl font-semibold mt-0.5 break-words">{p.name}</h1>
         </div>
       </div>
@@ -481,7 +489,7 @@ const PolicyDetailPage = () => {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-base">Detalles</CardTitle>
+            <CardTitle className="text-base">{t('caseDetail.details')}</CardTitle>
             <div className="flex items-center gap-2">
               <StatusBadge statecode={p.statecode} />
               {isStaff && p.statecode === 0 && (
@@ -491,10 +499,10 @@ const PolicyDetailPage = () => {
                   className="h-7 text-xs"
                   onClick={handleRecalculate}
                   disabled={recalcBusy}
-                  title="Vuelve a calcular las sugerencias de asignación — útil después de activar una póliza nueva del mismo cliente"
+                  title={t('policyDetail.recalculateTitle')}
                 >
                   {recalcBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-                  Recalcular sugerencias
+                  {t('policyDetail.recalculateButton')}
                 </Button>
               )}
               {isAdmin && (
@@ -506,7 +514,7 @@ const PolicyDetailPage = () => {
                   disabled={statusBusy}
                 >
                   {statusBusy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Power className="mr-1.5 h-3.5 w-3.5" />}
-                  {p.statecode === 0 ? 'Desactivar póliza' : 'Reactivar póliza'}
+                  {p.statecode === 0 ? t('policyDetail.deactivatePolicy') : t('policyDetail.reactivatePolicy')}
                 </Button>
               )}
             </div>
@@ -514,15 +522,15 @@ const PolicyDetailPage = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            <Field label="Fecha inicio">{fmtDate(p.startDateFormatted)}</Field>
-            <Field label="Fecha vencimiento">{fmtDate(p.dueDateFormatted)}</Field>
-            <Field label="Total de horas">
+            <Field label={t('policies.startDate')}>{fmtDate(p.startDateFormatted, dateLocale)}</Field>
+            <Field label={t('policies.dueDate')}>{fmtDate(p.dueDateFormatted, dateLocale)}</Field>
+            <Field label={t('policyDetail.totalHours')}>
               {p.totalHours != null ? `${fmtHours(p.totalHours)} h` : null}
             </Field>
-            <Field label="Horas usadas (tareas)">
+            <Field label={t('policyDetail.usedHours')}>
               {p.consumedHours != null ? `${fmtHours(p.consumedHours)} h` : null}
             </Field>
-            <Field label="Horas disponibles">
+            <Field label={t('policies.availableHours')}>
               {p.totalHours != null && p.consumedHours != null ? `${fmtHours(p.totalHours - p.consumedHours)} h` : null}
             </Field>
           </div>
@@ -535,7 +543,7 @@ const PolicyDetailPage = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            Registros de soporte
+            {t('policyDetail.supportRecords')}
             <span className="text-xs font-normal text-muted-foreground">({p.supportPolicies.length})</span>
           </CardTitle>
         </CardHeader>
@@ -547,14 +555,14 @@ const PolicyDetailPage = () => {
           )}
           {p.supportPolicies.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              Sin registros de soporte para esta póliza.
+              {t('policyDetail.noSupportRecords')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 border-y">
                   <tr>
-                    {[isStaff ? '' : null, 'Id', 'Tipo', 'Fecha', 'Fecha fin', 'Horas', 'Asignado', 'Disponible', 'Comentarios', 'Estado']
+                    {[isStaff ? '' : null, t('policyDetail.colId'), t('policyDetail.colType'), t('policyDetail.colDate'), t('policyDetail.colEndDate'), t('table.hours'), t('policyDetail.colAssigned'), t('policyDetail.colAvailable'), t('policyDetail.colComments'), t('table.status')]
                       .filter((h) => h !== null)
                       .map((h, i) => (
                         <th key={h || `col-${i}`} className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap first:pl-6">
@@ -588,8 +596,8 @@ const PolicyDetailPage = () => {
                             )}
                           </td>
                           <td className="px-4 py-2.5 whitespace-nowrap">{sp.typeName || '—'}</td>
-                          <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{fmtDate(sp.dateFormatted) || '—'}</td>
-                          <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{fmtDate(sp.endDateFormatted) || '—'}</td>
+                          <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{fmtDate(sp.dateFormatted, dateLocale) || '—'}</td>
+                          <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{fmtDate(sp.endDateFormatted, dateLocale) || '—'}</td>
                           <td className="px-4 py-2.5 whitespace-nowrap">{sp.hours != null ? fmtHours(sp.hours) : '—'}</td>
                           <td className="px-4 py-2.5 whitespace-nowrap">{sp.allocatedHours != null ? `${fmtHours(sp.allocatedHours)}h` : '—'}</td>
                           <td className="px-4 py-2.5 whitespace-nowrap font-medium">{sp.availableHours != null ? `${fmtHours(sp.availableHours)}h` : '—'}</td>
@@ -645,7 +653,7 @@ const PolicyDetailPage = () => {
               className="flex items-center gap-2 text-sm font-medium hover:text-foreground"
             >
               {showLinkedTickets ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              Tickets vinculados a la póliza ({linkedTickets.length})
+              {t('policyDetail.linkedTickets', { count: linkedTickets.length })}
             </button>
           </CardHeader>
           {showLinkedTickets && (
@@ -654,7 +662,7 @@ const PolicyDetailPage = () => {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 border-y">
                     <tr>
-                      {['Ticket', 'Título', 'Mes y año', 'Horas', 'Detalle'].map((h) => (
+                      {[t('table.ticket'), t('table.title'), t('policyDetail.colMonthYear'), t('table.hours'), t('policyDetail.colDetail')].map((h) => (
                         <th key={h} className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap first:pl-6">
                           {h}
                         </th>
@@ -662,26 +670,26 @@ const PolicyDetailPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {linkedTickets.map((t) => (
-                      <tr key={t.id} className="hover:bg-muted/20 transition-colors">
+                    {linkedTickets.map((lt) => (
+                      <tr key={lt.id} className="hover:bg-muted/20 transition-colors">
                         <td className="pl-6 pr-4 py-2.5 font-bold whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5">
-                            {t.isWarranty && <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
-                            {t.ticketNumber || t.ticketId}
+                            {lt.isWarranty && <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
+                            {lt.ticketNumber || lt.ticketId}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-muted-foreground max-w-[320px] truncate" title={t.ticketTitle || ''}>
-                          {t.ticketTitle || '—'}
+                        <td className="px-4 py-2.5 text-muted-foreground max-w-[320px] truncate" title={lt.ticketTitle || ''}>
+                          {lt.ticketTitle || '—'}
                         </td>
                         <td
                           className="px-4 py-2.5 text-muted-foreground whitespace-nowrap capitalize"
-                          title={t.monthEstimated ? 'Estimado a partir del detalle — esta asignación se aceptó antes de guardar el mes real del ticket' : undefined}
+                          title={lt.monthEstimated ? t('policyDetail.estimatedMonthTitle') : undefined}
                         >
-                          {t.monthKey ? format(t.monthKey, 'MMMM yyyy', { locale: es }) : '—'}
-                          {t.monthEstimated && <span className="text-xs">*</span>}
+                          {lt.monthKey ? format(lt.monthKey, 'MMMM yyyy', { locale: dateLocale }) : '—'}
+                          {lt.monthEstimated && <span className="text-xs">*</span>}
                         </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">{fmtHours(t.hours)}h</td>
-                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{t.detailName}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">{fmtHours(lt.hours)}h</td>
+                        <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{lt.detailName}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -702,7 +710,7 @@ const PolicyDetailPage = () => {
               className="flex items-center gap-2 text-sm font-medium hover:text-foreground"
             >
               {showUnmatched ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              Tickets sin periodo asignable ({unmatched.length})
+              {t('policyDetail.unmatchedTickets', { count: unmatched.length })}
             </button>
           </CardHeader>
           {showUnmatched && (
@@ -711,9 +719,9 @@ const PolicyDetailPage = () => {
                 <div key={i} className="text-xs text-muted-foreground rounded border border-dashed p-2 flex items-center justify-between gap-2">
                   <span>
                     <span className="font-medium text-foreground">{u.ticketNumber || u.ticketId}</span> — {fmtHours(u.hours)}h
-                    {u.dueDate && <span className="ml-1.5">· venc. {fmtDayKey(u.dueDate)}</span>}
+                    {u.dueDate && <span className="ml-1.5">· {t('policyDetail.dueDateShort')} {fmtDayKey(u.dueDate, dateLocale)}</span>}
                   </span>
-                  <span>{UNMATCHED_REASON_LABEL[u.reason] || u.reason}</span>
+                  <span>{u.reason && UNMATCHED_REASON_KEY[u.reason] ? t(UNMATCHED_REASON_KEY[u.reason]) : u.reason}</span>
                 </div>
               ))}
             </CardContent>
@@ -725,8 +733,8 @@ const PolicyDetailPage = () => {
         <DialogContent className="max-w-sm" showCloseButton={false}>
           <p className="text-sm">{confirmState?.message}</p>
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={() => resolveConfirm(false)}>Cancelar</Button>
-            <Button size="sm" onClick={() => resolveConfirm(true)}>Confirmar</Button>
+            <Button variant="outline" size="sm" onClick={() => resolveConfirm(false)}>{t('common.cancel')}</Button>
+            <Button size="sm" onClick={() => resolveConfirm(true)}>{t('policyDetail.confirm')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

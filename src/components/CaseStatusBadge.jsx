@@ -1,14 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 
-const STATUS = {
-  0: { label: 'Activo',    variant: 'default' },
-  1: { label: 'Resuelto',  variant: 'secondary' },
-  2: { label: 'Cancelado', variant: 'outline' },
+const STATUS_KEY = {
+  0: { key: 'status.active',    variant: 'default' },
+  1: { key: 'status.resolved',  variant: 'secondary' },
+  2: { key: 'status.cancelled', variant: 'outline' },
 };
 
 const CaseStatusBadge = ({ statecode }) => {
-  const { label, variant } = STATUS[statecode] ?? { label: 'Desconocido', variant: 'outline' };
-  return <Badge variant={variant}>{label}</Badge>;
+  const { t } = useTranslation();
+  const { key, variant } = STATUS_KEY[statecode] ?? { key: 'status.unknown', variant: 'outline' };
+  return <Badge variant={variant}>{t(key)}</Badge>;
 };
 
 export default CaseStatusBadge;

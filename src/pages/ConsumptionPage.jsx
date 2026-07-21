@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getConsumption, listConsumptionCustomers } from '../api/consumption';
 import { listMyPolicies } from '../api/policies';
@@ -15,8 +16,7 @@ import {
 import { fmtHours as fmtHoursShared, cn } from '@/lib/utils';
 
 const STAFF_ROLES = ['admin', 'support'];
-const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const MONTH_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const MONTH_SHORT_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
@@ -68,9 +68,13 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
 );
 
 const ConsumptionPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
+
+  const MONTHS = useMemo(() => MONTH_SHORT_KEYS.map((k) => t(`months.short.${k}`)), [t]);
+  const MONTH_FULL = useMemo(() => MONTH_SHORT_KEYS.map((k) => t(`months.full.${k}`)), [t]);
 
   // Los filtros viven en la URL (?client=&year=&month=) para que, al abrir un
   // ticket y volver, se regrese exactamente a la misma vista de Consumo.
@@ -122,11 +126,11 @@ const ConsumptionPage = () => {
       const result = await getConsumption(params);
       setRows(result.rows || []);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar el consumo');
+      setError(err.response?.data?.error || t('consumption.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [hasCustomer, isStaff, selectedClient, year]);
+  }, [hasCustomer, isStaff, selectedClient, year, t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -228,18 +232,18 @@ const ConsumptionPage = () => {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" /> Consumo
+            <BarChart3 className="h-5 w-5 text-primary" /> {t('nav.consumption')}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Horas aplicadas por ticket, desglosadas por mes</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{t('consumption.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {isStaff && clients.length > 0 && (
             <Select value={selectedClientId || 'none'} onValueChange={(v) => setSelectedClientId(v === 'none' ? '' : v)}>
               <SelectTrigger className="w-56 h-9 text-sm">
-                <SelectValue placeholder="Selecciona un cliente" />
+                <SelectValue placeholder={t('policies.selectClient')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Selecciona un cliente</SelectItem>
+                <SelectItem value="none">{t('policies.selectClient')}</SelectItem>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
@@ -251,7 +255,7 @@ const ConsumptionPage = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">Todos los meses</SelectItem>
+              <SelectItem value="0">{t('consumption.allMonths')}</SelectItem>
               {MONTH_FULL.map((m, i) => (
                 <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
               ))}
@@ -286,7 +290,7 @@ const ConsumptionPage = () => {
             <KpiCard
               icon={Clock}
               value={fmtHoursShared(grandTotal)}
-              label={selectedMonth === 0 ? `Horas facturables ${year}` : `Horas facturables ${MONTH_FULL[selectedMonth - 1]}`}
+              label={selectedMonth === 0 ? t('consumption.billableHoursYear', { year }) : t('consumption.billableHoursMonth', { month: MONTH_FULL[selectedMonth - 1] })}
               iconBg="bg-primary/10"
               iconColor="text-primary"
               valueColor="text-primary"
@@ -294,7 +298,7 @@ const ConsumptionPage = () => {
             <KpiCard
               icon={Ticket}
               value={kpis.ticketCount}
-              label="Tickets con consumo"
+              label={t('consumption.ticketsWithConsumption')}
               iconBg="bg-blue-50"
               iconColor="text-blue-900"
               valueColor="text-blue-900"
@@ -302,7 +306,7 @@ const ConsumptionPage = () => {
             <KpiCard
               icon={ShieldCheck}
               value={fmtHoursShared(kpis.warrantyHours)}
-              label="Horas de garantía"
+              label={t('consumption.warrantyHours')}
               iconBg="bg-amber-50"
               iconColor="text-amber-600"
               valueColor="text-amber-600"
@@ -310,7 +314,7 @@ const ConsumptionPage = () => {
             <KpiCard
               icon={TrendingUp}
               value={fmtHoursShared(kpis.avgPerTicket)}
-              label="Promedio h / ticket"
+              label={t('consumption.avgHoursPerTicket')}
               iconBg="bg-green-50"
               iconColor="text-green-600"
               valueColor="text-green-600"
@@ -318,7 +322,7 @@ const ConsumptionPage = () => {
             <KpiCard
               icon={Wallet}
               value={policiesLoading ? undefined : fmtHoursShared(availableHours)}
-              label="Horas disponibles (póliza activa)"
+              label={t('consumption.availableHoursActivePolicy')}
               iconBg="bg-indigo-50"
               iconColor="text-indigo-600"
               valueColor="text-indigo-600"
@@ -332,9 +336,9 @@ const ConsumptionPage = () => {
           {isStaff && !hasCustomer && (
             <div className="py-16 text-center space-y-3">
               <Users className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="font-medium text-sm">Selecciona un cliente</p>
+              <p className="font-medium text-sm">{t('policies.selectClient')}</p>
               <p className="text-muted-foreground text-xs max-w-xs mx-auto">
-                Elige un cliente arriba para ver su consumo de horas billables.
+                {t('consumption.selectClientBody')}
               </p>
             </div>
           )}
@@ -347,7 +351,7 @@ const ConsumptionPage = () => {
 
           {!loading && hasCustomer && groups.length === 0 && !error && (
             <div className="py-16 text-center text-sm text-muted-foreground">
-              No hay consumo de horas billables registrado en {selectedMonth === 0 ? year : `${MONTH_FULL[selectedMonth - 1]} ${year}`}.
+              {t('consumption.noConsumption', { period: selectedMonth === 0 ? String(year) : `${MONTH_FULL[selectedMonth - 1]} ${year}` })}
             </div>
           )}
 
@@ -356,12 +360,12 @@ const ConsumptionPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-muted/60 border-y sticky top-0 z-10">
                   <tr>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/60 z-20">Ticket</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap min-w-[220px]">Título</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/60 z-20">{t('table.ticket')}</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap min-w-[220px]">{t('table.title')}</th>
                     {visibleMonths.map((m) => (
                       <th key={m} className="text-right px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{MONTHS[m - 1]}</th>
                     ))}
-                    <th className="text-right px-4 py-2.5 font-bold text-foreground whitespace-nowrap">Total</th>
+                    <th className="text-right px-4 py-2.5 font-bold text-foreground whitespace-nowrap">{t('consumption.total')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -393,7 +397,7 @@ const ConsumptionPage = () => {
                             <tr
                               key={r.ticketId}
                               className={cn('transition-colors cursor-pointer', r.isWarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/10')}
-                              title={r.isWarranty ? 'Ticket de garantía — no cuenta como horas billables (doble clic para abrir)' : 'Doble clic para abrir el ticket'}
+                              title={r.isWarranty ? t('consumption.warrantyRowTitle') : t('consumption.doubleClickToOpen')}
                               onDoubleClick={() => navigate(`/cases/${r.ticketId}`)}
                             >
                               <td className={cn('pl-8 pr-4 py-2 text-sm font-bold whitespace-nowrap sticky left-0', r.isWarranty ? 'bg-amber-50' : 'bg-background')}>
@@ -407,7 +411,7 @@ const ConsumptionPage = () => {
                                 <td
                                   key={m}
                                   className={cn('px-3 py-2 text-right whitespace-nowrap', r.isWarranty ? 'text-red-600 font-medium' : 'text-muted-foreground')}
-                                  title={r.isWarranty ? 'Horas de garantía — no se facturan ni suman al total' : undefined}
+                                  title={r.isWarranty ? t('consumption.warrantyHoursCellTitle') : undefined}
                                 >
                                   {r.isWarranty ? fmtHours(r.rawMonths?.[m] ?? 0) : fmtHours(r.months[m] ?? 0)}
                                 </td>
@@ -422,7 +426,7 @@ const ConsumptionPage = () => {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 font-bold">
-                    <td colSpan={2} className="px-4 py-2.5 sticky left-0 bg-background whitespace-nowrap">Total</td>
+                    <td colSpan={2} className="px-4 py-2.5 sticky left-0 bg-background whitespace-nowrap">{t('consumption.total')}</td>
                     {grandMonthTotals.map((h, i) => (
                       <td key={i} className="px-3 py-2.5 text-right whitespace-nowrap">{fmtHours(h)}</td>
                     ))}

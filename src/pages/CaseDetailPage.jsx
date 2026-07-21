@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format, isAfter } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../hooks/useDateLocale';
 import { getCaseDetail, updateCasePolicy } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -23,17 +24,18 @@ const STAFF_ROLES = ['admin', 'support'];
 
 // ─── Priority badge ────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
-  0: { label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' },
-  1: { label: 'Alta',    color: '#EA580C', bg: '#FFF7ED' },
-  2: { label: 'Normal',  color: '#1B3860', bg: '#EFF6FF' },
-  3: { label: 'Baja',    color: '#16A34A', bg: '#F0FDF4' },
+  0: { key: 'priority.critical', color: '#DC2626', bg: '#FEF2F2' },
+  1: { key: 'priority.high',     color: '#EA580C', bg: '#FFF7ED' },
+  2: { key: 'priority.normal',   color: '#1B3860', bg: '#EFF6FF' },
+  3: { key: 'priority.low',      color: '#16A34A', bg: '#F0FDF4' },
 };
 const PriorityBadge = ({ code }) => {
+  const { t } = useTranslation();
   const p = PRIORITY_COLOR[code];
-  if (!p) return <span className="font-medium text-sm">Normal</span>;
+  if (!p) return <span className="font-medium text-sm">{t('priority.normal')}</span>;
   return (
     <span style={{ color: p.color, background: p.bg, borderRadius: 9999, padding: '5px 16px', fontSize: 14, fontWeight: 700 }}>
-      {p.label}
+      {t(p.key)}
     </span>
   );
 };
@@ -111,11 +113,13 @@ const ActivityIcon = ({ type }) => {
 
 // ─── Single timeline entry ─────────────────────────────────────────────────────
 const TimelineItem = ({ item }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const [expanded, setExpanded] = useState(false);
   const owner = item.ownerName || '—';
   const dueDate = item.scheduledend || item.date;
   const dateStr = dueDate
-    ? format(new Date(dueDate), 'dd/MM/yyyy HH:mm', { locale: es })
+    ? format(new Date(dueDate), 'dd/MM/yyyy HH:mm', { locale: dateLocale })
     : '';
 
   const bodyText = [item.subject, item.description].filter(Boolean).join('\n').trim();
@@ -127,7 +131,7 @@ const TimelineItem = ({ item }) => {
       <Avatar name={owner} />
       <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground mb-1">
-          {item.scheduledend ? 'Fecha límite:' : 'Fecha:'} {dateStr}
+          {item.scheduledend ? t('caseDetail.dueDateLabel') : t('caseDetail.dateLabel')} {dateStr}
         </p>
         <div className="flex items-center gap-1.5 flex-wrap mb-1">
           <ActivityIcon type={item.type} />
@@ -136,13 +140,13 @@ const TimelineItem = ({ item }) => {
           {item.isOverdue && (
             <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
               style={{ background: '#FEF2F2', color: '#DC2626' }}>
-              Vencido
+              {t('caseDetail.overdue')}
             </span>
           )}
           {item.isCompleted && (
             <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
               style={{ background: '#F0FDF4', color: '#16A34A' }}>
-              Completado
+              {t('caseDetail.completed')}
             </span>
           )}
           {item.statusLabel && !item.isOverdue && !item.isCompleted && (
@@ -160,7 +164,7 @@ const TimelineItem = ({ item }) => {
             onClick={() => setExpanded(v => !v)}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1 transition-colors"
           >
-            {expanded ? <><ChevronUp className="h-3 w-3" /> Ver menos</> : <><ChevronDown className="h-3 w-3" /> Ver más</>}
+            {expanded ? <><ChevronUp className="h-3 w-3" /> {t('caseDetail.seeLess')}</> : <><ChevronDown className="h-3 w-3" /> {t('caseDetail.seeMore')}</>}
           </button>
         )}
       </div>
@@ -170,6 +174,7 @@ const TimelineItem = ({ item }) => {
 
 // ─── Timeline panel ────────────────────────────────────────────────────────────
 const Timeline = ({ items = [] }) => {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const filtered = search
@@ -183,15 +188,15 @@ const Timeline = ({ items = [] }) => {
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold">Timeline</h2>
-        <span className="text-xs text-muted-foreground">{items.length} entradas</span>
+        <h2 className="text-base font-semibold">{t('caseDetail.timeline')}</h2>
+        <span className="text-xs text-muted-foreground">{t('caseDetail.entriesCount', { count: items.length })}</span>
       </div>
 
       {/* Search */}
       <div className="relative mb-3">
         <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
-          placeholder="Buscar en timeline…"
+          placeholder={t('caseDetail.searchTimeline')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="pl-8 h-8 text-xs"
@@ -202,7 +207,7 @@ const Timeline = ({ items = [] }) => {
       <div className="flex-1 min-h-0 overflow-y-auto">
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
-            {search ? 'Sin resultados.' : 'Sin actividad registrada.'}
+            {search ? t('caseDetail.noResults') : t('caseDetail.noActivity')}
           </p>
         ) : (
           filtered.map(item => <TimelineItem key={item.id} item={item} />)
@@ -214,6 +219,8 @@ const Timeline = ({ items = [] }) => {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 const CaseDetailPage = () => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -226,9 +233,9 @@ const CaseDetailPage = () => {
   useEffect(() => {
     getCaseDetail(id)
       .then(setCaseData)
-      .catch((err) => setError(err.response?.data?.error || 'Error al cargar el ticket'))
+      .catch((err) => setError(err.response?.data?.error || t('caseDetail.loadError')))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, t]);
 
   // Regresa a la página anterior real (Tickets, Mis Tickets, Consumo, etc.) en
   // vez de siempre ir a /cases — así se conserva el estado/filtros de origen.
@@ -242,9 +249,9 @@ const CaseDetailPage = () => {
     try {
       await updateCasePolicy(id, policyId || null);
       setCaseData((prev) => ({ ...prev, policyId: policyId || null, policyName: policyName || null }));
-      toast.success(policyId ? 'Póliza vinculada al ticket' : 'Póliza desvinculada del ticket');
+      toast.success(policyId ? t('caseDetail.policyLinked') : t('caseDetail.policyUnlinked'));
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al actualizar la póliza');
+      toast.error(err.response?.data?.error || t('caseDetail.policyUpdateError'));
     } finally {
       setSavingPolicy(false);
     }
@@ -263,7 +270,7 @@ const CaseDetailPage = () => {
   if (error) return (
     <div className="max-w-xl space-y-4">
       <Button variant="ghost" size="sm" onClick={() => handleBack()}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Volver
+        <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
       </Button>
       <Alert variant="destructive">
         <AlertDescription>{error}</AlertDescription>
@@ -295,14 +302,14 @@ const CaseDetailPage = () => {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <CardTitle className="text-base">Detalles</CardTitle>
+                <CardTitle className="text-base">{t('caseDetail.details')}</CardTitle>
                 <div className="flex items-center gap-2 flex-wrap">
                   {c.cre2f_iswarranty && (
                     <span
                       className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
                       style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A' }}
                     >
-                      <ShieldCheck className="h-3.5 w-3.5" /> Garantía
+                      <ShieldCheck className="h-3.5 w-3.5" /> {t('dashboard.warranty')}
                     </span>
                   )}
                   <CaseStatusBadge statecode={c.statecode} />
@@ -312,37 +319,37 @@ const CaseDetailPage = () => {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label="Prioridad"><PriorityBadge code={c.prioritycode} /></Field>
-                <Field label="Tipo de caso">{c.caseTypeLabel}</Field>
-                <Field label="Origen">{c.originLabel}</Field>
+                <Field label={t('table.priority')}><PriorityBadge code={c.prioritycode} /></Field>
+                <Field label={t('caseDetail.caseType')}>{c.caseTypeLabel}</Field>
+                <Field label={t('caseDetail.origin')}>{c.originLabel}</Field>
               </div>
               <Separator />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label="Cliente">{c.customerName}</Field>
-                <Field label="Contacto">{c.contactName}</Field>
-                <Field label="Usuario cliente">{c.customerUserName}</Field>
+                <Field label={t('table.customer')}>{c.customerName}</Field>
+                <Field label={t('table.contact')}>{c.contactName}</Field>
+                <Field label={t('caseDetail.customerUser')}>{c.customerUserName}</Field>
               </div>
               <Separator />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label="Categoría de servicio">{c.serviceCategoryName}</Field>
-                <Field label="Sistema">{c.systemName}</Field>
-                <Field label="Módulo">{c.moduleName}</Field>
+                <Field label={t('caseDetail.serviceCategory')}>{c.serviceCategoryName}</Field>
+                <Field label={t('caseDetail.system')}>{c.systemName}</Field>
+                <Field label={t('caseDetail.module')}>{c.moduleName}</Field>
               </div>
               <Separator />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label="Responsable">{c.ownerName}</Field>
-                <Field label="Creado">
-                  {c.createdon ? format(new Date(c.createdon), "dd 'de' MMMM yyyy", { locale: es }) : null}
+                <Field label={t('table.owner')}>{c.ownerName}</Field>
+                <Field label={t('table.created')}>
+                  {c.createdon ? format(new Date(c.createdon), "dd 'de' MMMM yyyy", { locale: dateLocale }) : null}
                 </Field>
-                <Field label="Fecha de cierre">
-                  {c.new_fechacierre ? format(new Date(c.new_fechacierre), "dd 'de' MMMM yyyy", { locale: es }) : null}
+                <Field label={t('caseDetail.closeDate')}>
+                  {c.new_fechacierre ? format(new Date(c.new_fechacierre), "dd 'de' MMMM yyyy", { locale: dateLocale }) : null}
                 </Field>
               </div>
               <Separator />
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-muted-foreground text-xs mb-1.5 flex items-center gap-1.5">
-                    Póliza {savingPolicy && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {t('caseDetail.policy')} {savingPolicy && <Loader2 className="h-3 w-3 animate-spin" />}
                   </p>
                   {isStaff ? (
                     <div className="max-w-xs">
@@ -351,14 +358,14 @@ const CaseDetailPage = () => {
                         label={c.policyName || ''}
                         onChange={handlePolicyChange}
                         disabled={savingPolicy}
-                        placeholder="Sin póliza vinculada"
+                        placeholder={t('caseDetail.noPolicyLinked')}
                       />
                     </div>
                   ) : (
                     <p className="text-sm font-medium">{c.policyName || <span className="text-muted-foreground font-normal">—</span>}</p>
                   )}
                 </div>
-                <Field label="Total de horas">
+                <Field label={t('caseDetail.totalHours')}>
                   {c.billableHours ? `${fmtHours(c.billableHours)} h` : null}
                 </Field>
               </div>
@@ -367,7 +374,7 @@ const CaseDetailPage = () => {
                 <>
                   <Separator />
                   <div>
-                    <p className="text-muted-foreground text-xs mb-2">Descripción</p>
+                    <p className="text-muted-foreground text-xs mb-2">{t('caseDetail.description')}</p>
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{c.description}</p>
                   </div>
                 </>
@@ -379,7 +386,7 @@ const CaseDetailPage = () => {
           {c.comments?.length > 0 && (
             <div>
               <h2 className="text-base font-semibold mb-3">
-                Comentarios ({c.comments.length})
+                {t('caseDetail.comments', { count: c.comments.length })}
               </h2>
               <div className="space-y-3">
                 {c.comments.map((comment) => (
@@ -389,7 +396,7 @@ const CaseDetailPage = () => {
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.notetext}</p>
                       <p className="text-xs text-muted-foreground mt-2">
                         {comment.createdon
-                          ? format(new Date(comment.createdon), "dd MMM yyyy 'a las' HH:mm", { locale: es })
+                          ? format(new Date(comment.createdon), t('caseDetail.commentDateFormat'), { locale: dateLocale })
                           : ''}
                       </p>
                     </CardContent>

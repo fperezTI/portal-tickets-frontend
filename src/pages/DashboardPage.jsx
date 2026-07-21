@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getDashboard } from '../api/cases';
 import { resolveAccount, resolveContact } from '../api/d365';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Ticket, AlertTriangle, Clock, CheckCircle2, Inbox, BarChart2, TrendingUp, Flame, Layers, ShieldCheck,
 } from 'lucide-react';
+import { fmtHours } from '@/lib/utils';
 
 // ─── Colores de etapa (por prefijo numérico en el nombre) ─────────────────────
 const STAGE_PALETTE = ['#94A3B8', '#0EA5E9', '#EAB308', '#F97316', '#22C55E', '#1E3A8A'];
@@ -56,24 +58,28 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
   </Card>
 );
 
-// ─── Gráfica de líneas mensual ────────────────────────────────────────────────
-const CYAN  = '#00B4CC';
-const GREEN = '#16A34A';
+// ─── Gráfica de líneas mensual (genérica, 1+ series) ──────────────────────────
+const CYAN   = '#00B4CC';
+const GREEN  = '#16A34A';
+const INDIGO = '#6366F1';
 
-const LineChart = ({ data }) => {
+// `series`: [{ key, color, label, formatValue? }] — una línea por serie,
+// todas comparten la misma escala (útil para created/closed; para una sola
+// serie como horas simplemente se pasa un arreglo de un elemento).
+const LineChart = ({ data, series }) => {
   const SVG_W = 580, SVG_H = 170;
   const PAD = { top: 22, right: 14, bottom: 28, left: 32 };
   const W = SVG_W - PAD.left - PAD.right;
   const H = SVG_H - PAD.top - PAD.bottom;
 
-  const max = Math.max(...data.flatMap((d) => [d.created, d.closed]), 1);
+  const max = Math.max(...data.flatMap((d) => series.map((s) => d[s.key] ?? 0)), 1);
   const n   = data.length;
 
   const xPos = (i) => PAD.left + (n < 2 ? W / 2 : (i / (n - 1)) * W);
   const yPos = (v) => PAD.top + H - (v / max) * H;
 
   const smoothPath = (key) => {
-    const pts = data.map((d, i) => ({ x: xPos(i), y: yPos(d[key]) }));
+    const pts = data.map((d, i) => ({ x: xPos(i), y: yPos(d[key] ?? 0) }));
     if (pts.length < 2) return `M ${pts[0].x} ${pts[0].y}`;
     const tension = 0.35;
     let d = `M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
@@ -91,7 +97,7 @@ const LineChart = ({ data }) => {
     return d;
   };
 
-  const areaPath = (key, color) => {
+  const areaPath = (key) => {
     const base = yPos(0);
     return `${smoothPath(key)} L ${xPos(n - 1).toFixed(1)},${base.toFixed(1)} L ${xPos(0).toFixed(1)},${base.toFixed(1)} Z`;
   };
@@ -100,25 +106,25 @@ const LineChart = ({ data }) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-6 justify-end">
-        {[{ color: CYAN, label: 'Generados' }, { color: GREEN, label: 'Cerrados' }].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-2">
-            <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke={color} strokeWidth="2.5" strokeLinecap="round" /><circle cx="12" cy="5" r="3" fill="white" stroke={color} strokeWidth="2" /></svg>
-            <span className="text-xs text-muted-foreground">{label}</span>
-          </div>
-        ))}
-      </div>
+      {series.length > 1 && (
+        <div className="flex gap-6 justify-end">
+          {series.map(({ key, color, label }) => (
+            <div key={key} className="flex items-center gap-2">
+              <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke={color} strokeWidth="2.5" strokeLinecap="round" /><circle cx="12" cy="5" r="3" fill="white" stroke={color} strokeWidth="2" /></svg>
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full overflow-visible" style={{ height: SVG_H }}>
         <defs>
-          <linearGradient id="lg-cyan"  x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={CYAN}  stopOpacity="0.18" />
-            <stop offset="100%" stopColor={CYAN}  stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="lg-green" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={GREEN} stopOpacity="0.14" />
-            <stop offset="100%" stopColor={GREEN} stopOpacity="0" />
-          </linearGradient>
+          {series.map(({ key, color }) => (
+            <linearGradient key={key} id={`lg-${key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor={color} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          ))}
         </defs>
 
         {/* Grid */}
@@ -135,24 +141,32 @@ const LineChart = ({ data }) => {
         })}
 
         {/* Area fills */}
-        <path d={areaPath('created')} fill="url(#lg-cyan)" />
-        <path d={areaPath('closed')}  fill="url(#lg-green)" />
+        {series.map(({ key }) => <path key={key} d={areaPath(key)} fill={`url(#lg-${key})`} />)}
 
         {/* Lines */}
-        <path d={smoothPath('created')} fill="none" stroke={CYAN}  strokeWidth="2.5" strokeLinecap="round" />
-        <path d={smoothPath('closed')}  fill="none" stroke={GREEN} strokeWidth="2.5" strokeLinecap="round" />
+        {series.map(({ key, color }) => (
+          <path key={key} d={smoothPath(key)} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+        ))}
 
         {/* Dots + value labels + month labels */}
         {data.map((d, i) => {
           const cx = xPos(i);
-          const cy1 = yPos(d.created);
-          const cy2 = yPos(d.closed);
           return (
             <g key={d.label}>
-              <circle cx={cx} cy={cy1} r="4" fill="white" stroke={CYAN}  strokeWidth="2.5" />
-              <circle cx={cx} cy={cy2} r="4" fill="white" stroke={GREEN} strokeWidth="2.5" />
-              {d.created > 0 && <text x={cx} y={cy1 - 9} textAnchor="middle" fontSize="9" fill="#6b7280">{d.created}</text>}
-              {d.closed  > 0 && <text x={cx} y={cy2 - 9} textAnchor="middle" fontSize="9" fill="#6b7280">{d.closed}</text>}
+              {series.map(({ key, color, formatValue }) => {
+                const val = d[key] ?? 0;
+                const cy = yPos(val);
+                return (
+                  <g key={key}>
+                    <circle cx={cx} cy={cy} r="4" fill="white" stroke={color} strokeWidth="2.5" />
+                    {val > 0 && (
+                      <text x={cx} y={cy - 9} textAnchor="middle" fontSize="9" fill="#6b7280">
+                        {formatValue ? formatValue(val) : val}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
               <text x={cx} y={SVG_H - 4} textAnchor="middle" fontSize="10" fontWeight="500" fill="#9ca3af">{d.label}</text>
             </g>
           );
@@ -176,6 +190,7 @@ const DashboardSkeleton = () => (
 
 // ─── Página ───────────────────────────────────────────────────────────────────
 const DashboardPage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
 
@@ -187,9 +202,9 @@ const DashboardPage = () => {
   useEffect(() => {
     getDashboard()
       .then(setData)
-      .catch(() => setError('No se pudieron cargar los indicadores'))
+      .catch(() => setError(t('dashboard.loadError')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (isStaff) return;
@@ -206,7 +221,7 @@ const DashboardPage = () => {
 
   if (loading) return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold tracking-tight">Panel de indicadores</h1>
+      <h1 className="text-xl font-semibold tracking-tight">{t('dashboard.title')}</h1>
       <DashboardSkeleton />
     </div>
   );
@@ -226,46 +241,18 @@ const DashboardPage = () => {
     <div className="space-y-6">
       {/* Título */}
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Panel de indicadores</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t('dashboard.title')}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {isStaff ? 'Vista global del sistema' : `Resumen de tickets — ${customerLabel}`}
+          {isStaff ? t('dashboard.globalView') : t('dashboard.customerSummary', { customer: customerLabel })}
         </p>
       </div>
 
-      {/* KPIs principales — fila 1: totales operativos */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <KpiCard
-          icon={Ticket}
-          value={activeTotal}
-          label="Tickets activos"
-          iconBg="bg-primary/10"
-          iconColor="text-primary"
-          valueColor="text-primary"
-        />
-        <KpiCard
-          icon={Inbox}
-          value={unassigned}
-          label="Por asignar"
-          iconBg="bg-orange-500/10"
-          iconColor="text-orange-600"
-          valueColor={unassigned > 0 ? 'text-orange-600' : 'text-foreground'}
-        />
-        <KpiCard
-          icon={ShieldCheck}
-          value={warranty}
-          label="Garantía"
-          iconBg="bg-amber-50"
-          iconColor="text-amber-600"
-          valueColor="text-amber-600"
-        />
-      </div>
-
-      {/* KPIs principales — fila 2: por prioridad */}
+      {/* KPIs principales — por prioridad */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={Flame}
           value={critica}
-          label="Crítica"
+          label={t('priority.critical')}
           iconBg="bg-red-50"
           iconColor="text-red-600"
           valueColor="text-red-600"
@@ -273,7 +260,7 @@ const DashboardPage = () => {
         <KpiCard
           icon={AlertTriangle}
           value={alta}
-          label="Alta prioridad"
+          label={t('dashboard.highPriority')}
           iconBg="bg-orange-50"
           iconColor="text-orange-500"
           valueColor={alta > 0 ? 'text-orange-500' : 'text-foreground'}
@@ -281,7 +268,7 @@ const DashboardPage = () => {
         <KpiCard
           icon={Clock}
           value={normal}
-          label="Prioridad normal"
+          label={t('dashboard.normalPriority')}
           iconBg="bg-blue-50"
           iconColor="text-blue-900"
           valueColor="text-blue-900"
@@ -289,14 +276,88 @@ const DashboardPage = () => {
         <KpiCard
           icon={CheckCircle2}
           value={baja}
-          label="Baja prioridad"
+          label={t('dashboard.lowPriority')}
           iconBg="bg-green-50"
           iconColor="text-green-600"
           valueColor="text-green-600"
         />
       </div>
 
-      {/* Fila 1: Por etapa + Resumen (misma altura por estar en el mismo grid row) */}
+      {/* Fila de gráficas — tickets y horas por mes, una junto a la otra */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BarChart2 className="h-4 w-4 text-muted-foreground" />
+              {t('dashboard.monthlyChartTitle')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {monthly.every((m) => m.created === 0 && m.closed === 0) ? (
+              <p className="text-sm text-muted-foreground text-center py-8">{t('common.noDataToShow')}</p>
+            ) : (
+              <LineChart
+                data={monthly}
+                series={[
+                  { key: 'created', color: CYAN,  label: t('dashboard.created') },
+                  { key: 'closed',  color: GREEN, label: t('dashboard.closed') },
+                ]}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              {t('dashboard.hoursChartTitle')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {monthly.every((m) => !m.hoursBillable) ? (
+              <p className="text-sm text-muted-foreground text-center py-8">{t('common.noDataToShow')}</p>
+            ) : (
+              <LineChart
+                data={monthly}
+                series={[
+                  { key: 'hoursBillable', color: INDIGO, label: t('dashboard.hoursBillable'), formatValue: (v) => fmtHours(v) },
+                ]}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* KPIs principales — totales operativos */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <KpiCard
+          icon={Ticket}
+          value={activeTotal}
+          label={t('dashboard.activeTickets')}
+          iconBg="bg-primary/10"
+          iconColor="text-primary"
+          valueColor="text-primary"
+        />
+        <KpiCard
+          icon={Inbox}
+          value={unassigned}
+          label={t('dashboard.unassigned')}
+          iconBg="bg-orange-500/10"
+          iconColor="text-orange-600"
+          valueColor={unassigned > 0 ? 'text-orange-600' : 'text-foreground'}
+        />
+        <KpiCard
+          icon={ShieldCheck}
+          value={warranty}
+          label={t('dashboard.warranty')}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          valueColor="text-amber-600"
+        />
+      </div>
+
+      {/* Por etapa + Resumen (misma altura por estar en el mismo grid row) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Tickets activos por etapa */}
@@ -304,12 +365,12 @@ const DashboardPage = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Layers className="h-4 w-4 text-muted-foreground" />
-              Tickets activos por etapa
+              {t('dashboard.activeByStage')}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5">
             {byStage.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">Sin datos de etapa</p>
+              <p className="text-sm text-muted-foreground text-center py-6">{t('dashboard.noStageData')}</p>
             ) : (
               <div className="space-y-2.5">
                 {[...byStage].sort((a, b) => stageOrder(a.stage) - stageOrder(b.stage)).map(({ stage, count }) => {
@@ -339,7 +400,7 @@ const DashboardPage = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              Resumen del período
+              {t('dashboard.periodSummary')}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-5 pb-5 space-y-5">
@@ -348,17 +409,17 @@ const DashboardPage = () => {
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl py-3 px-2" style={{ background: '#EFF9FB' }}>
                 <p className="text-2xl font-bold tabular-nums" style={{ color: CYAN }}>{totalMonthCreated}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">Generados</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t('dashboard.created')}</p>
               </div>
               <div className="rounded-xl py-3 px-2 bg-green-50">
                 <p className="text-2xl font-bold tabular-nums text-green-600">{totalMonthClosed}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">Cerrados</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t('dashboard.closed')}</p>
               </div>
               <div className="rounded-xl py-3 px-2 bg-primary/5">
                 <p className="text-2xl font-bold tabular-nums text-primary">
                   {totalMonthCreated > 0 ? Math.round((totalMonthClosed / totalMonthCreated) * 100) : 0}%
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">Tasa cierre</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t('dashboard.closeRate')}</p>
               </div>
             </div>
 
@@ -367,14 +428,14 @@ const DashboardPage = () => {
             {/* Distribución por prioridad */}
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Distribución por prioridad — activos
+                {t('dashboard.priorityDistribution')}
               </p>
               <div className="space-y-2.5">
                 {[
-                  { label: 'Crítica', value: critica, color: '#DC2626' },
-                  { label: 'Alta',    value: alta,    color: '#EA580C' },
-                  { label: 'Normal',  value: normal,  color: '#1B3860' },
-                  { label: 'Baja',    value: baja,    color: '#16A34A' },
+                  { label: t('priority.critical'), value: critica, color: '#DC2626' },
+                  { label: t('priority.high'),      value: alta,    color: '#EA580C' },
+                  { label: t('priority.normal'),    value: normal,  color: '#1B3860' },
+                  { label: t('priority.low'),       value: baja,    color: '#16A34A' },
                 ].map(({ label, value, color }) => {
                   const pct = activeTotal > 0 ? Math.round((value / activeTotal) * 100) : 0;
                   return (
@@ -395,23 +456,6 @@ const DashboardPage = () => {
         </Card>
 
       </div>
-
-      {/* Fila 2: Gráfica de líneas */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <BarChart2 className="h-4 w-4 text-muted-foreground" />
-            Tickets por mes (últimos 6 meses)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          {monthly.every((m) => m.created === 0 && m.closed === 0) ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Sin datos para mostrar</p>
-          ) : (
-            <LineChart data={monthly} />
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };

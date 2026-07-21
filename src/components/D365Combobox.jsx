@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { searchContacts, searchAccounts, resolveContact, resolveAccount } from '../api/d365';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils';
  * onChange: (guid: string) => void
  */
 const D365Combobox = ({ entityType, value, onChange, disabled }) => {
+  const { t } = useTranslation();
   const [open, setOpen]               = useState(false);
   const [query, setQuery]             = useState('');
   const [options, setOptions]         = useState([]);
@@ -74,7 +76,7 @@ const D365Combobox = ({ entityType, value, onChange, disabled }) => {
   };
 
   const displayText = selectedLabel || (value ? value.slice(0, 8) + '…' : '');
-  const placeholder = isContact ? 'Buscar contacto…' : 'Buscar empresa…';
+  const placeholder = isContact ? t('combobox.searchContact') : t('combobox.searchCompany');
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -114,18 +116,18 @@ const D365Combobox = ({ entityType, value, onChange, disabled }) => {
             {loading && (
               <div className="flex items-center justify-center py-6 gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Buscando…
+                {t('combobox.searching')}
               </div>
             )}
 
             {/* Instrucción inicial */}
             {!loading && query.length < 2 && (
-              <CommandEmpty>Escribe al menos 2 caracteres para buscar</CommandEmpty>
+              <CommandEmpty>{t('combobox.typeToSearch')}</CommandEmpty>
             )}
 
             {/* Sin resultados */}
             {!loading && query.length >= 2 && options.length === 0 && (
-              <CommandEmpty>Sin resultados para "{query}"</CommandEmpty>
+              <CommandEmpty>{t('combobox.noResultsFor', { query })}</CommandEmpty>
             )}
 
             {/* Resultados */}

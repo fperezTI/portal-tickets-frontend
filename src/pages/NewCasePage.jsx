@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { createCase } from '../api/cases';
 import { listServiceCategories, listSystems, listAreas } from '../api/d365';
@@ -26,57 +27,65 @@ import { toast } from 'sonner';
 
 const STAFF_ROLES = ['admin', 'support'];
 
-const CASE_TYPE_OPTIONS = [
-  { value: '1', label: 'Pregunta' },
-  { value: '2', label: 'Problema' },
-  { value: '3', label: 'Solicitud' },
+const CASE_TYPE_KEYS = [
+  { value: '1', key: 'newCase.caseTypeQuestion' },
+  { value: '2', key: 'newCase.caseTypeProblem' },
+  { value: '3', key: 'newCase.caseTypeRequest' },
 ];
 
-const ORIGIN_OPTIONS = [
-  { value: '1', label: 'Teléfono' },
-  { value: '2', label: 'Correo' },
-  { value: '3', label: 'Web' },
-  { value: '2483', label: 'Facebook' },
-  { value: '3986', label: 'Twitter' },
+const ORIGIN_KEYS = [
+  { value: '1',    key: 'newCase.originPhone' },
+  { value: '2',    key: 'newCase.originEmail' },
+  { value: '3',    key: 'newCase.originWeb' },
+  { value: '2483', key: 'newCase.originFacebook' },
+  { value: '3986', key: 'newCase.originTwitter' },
 ];
 
-const schema = z.object({
-  title:             z.string().min(1, 'El título es requerido'),
-  description:       z.string().min(1, 'La descripción es requerida'),
-  priority:          z.string().optional(),
-  caseType:          z.string().optional(),
-  serviceCategoryId: z.string().min(1, 'La categoría de servicio es requerida'),
-  systemId:          z.string().min(1, 'El sistema es requerido'),
-  areaId:            z.string().min(1, 'El módulo es requerido'),
-  customerAccountId: z.string().optional(),
-  contactId:         z.string().optional(),
-  customerUserId:    z.string().optional(),
-  origin:            z.string().optional(),
-  policyId:          z.string().optional(),
-});
+const useCaseSchema = () => {
+  const { t } = useTranslation();
+  return useMemo(() => z.object({
+    title:             z.string().min(1, t('newCase.titleRequired')),
+    description:       z.string().min(1, t('newCase.descriptionRequired')),
+    priority:          z.string().optional(),
+    caseType:          z.string().optional(),
+    serviceCategoryId: z.string().min(1, t('newCase.serviceCategoryRequired')),
+    systemId:          z.string().min(1, t('newCase.systemRequired')),
+    areaId:            z.string().min(1, t('newCase.areaRequired')),
+    customerAccountId: z.string().optional(),
+    contactId:         z.string().optional(),
+    customerUserId:    z.string().optional(),
+    origin:            z.string().optional(),
+    policyId:          z.string().optional(),
+  }), [t]);
+};
 
-const CatalogSelect = ({ label, required, placeholder, options, value, onChange, error, loading, disabled }) => (
-  <div className="space-y-1.5">
-    <Label>{label} {required && '*'}</Label>
-    <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger>
-        <SelectValue placeholder={loading ? 'Cargando…' : placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((o) => (
-          <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    {error && <p className="text-xs text-destructive">{error}</p>}
-  </div>
-);
+const CatalogSelect = ({ label, required, placeholder, options, value, onChange, error, loading, disabled }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-1.5">
+      <Label>{label} {required && '*'}</Label>
+      <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger>
+          <SelectValue placeholder={loading ? t('common.loadingEllipsis') : placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+};
 
 // ─── Formulario ────────────────────────────────────────────────────────────────
 // Se remonta por completo (vía `key` en el padre) cada vez que se crea un ticket
 // y el usuario pulsa "Crear otro": así se garantiza un estado 100% limpio (react-hook-form,
 // D365Combobox) sin depender de las particularidades de reset()/clearErrors().
 const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems, areas, onCreateAnother }) => {
+  const { t } = useTranslation();
+  const schema = useCaseSchema();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [createdCase, setCreatedCase] = useState(null);
@@ -112,7 +121,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
   const onSubmit = async (data) => {
     setError('');
     if (isStaff && !data.customerAccountId) {
-      setError('Selecciona un cliente antes de crear el ticket');
+      setError(t('newCase.selectCustomerFirst'));
       return;
     }
     try {
@@ -136,12 +145,12 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
             }
           : {}),
       });
-      toast.success('Ticket creado correctamente');
+      toast.success(t('newCase.createdToast'));
       // Se permanece en la misma pantalla, con los datos capturados visibles,
       // en lugar de navegar a la lista de tickets.
       setCreatedCase(newCase);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al crear el ticket');
+      setError(err.response?.data?.error || t('newCase.createError'));
     }
   };
 
@@ -154,7 +163,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          Tu usuario no está vinculado a un contacto o cuenta de Dynamics 365. Contacta a un administrador para poder crear tickets.
+          {t('newCase.noCustomerLinked')}
         </AlertDescription>
       </Alert>
     );
@@ -172,7 +181,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
         <Alert style={{ background: '#F0FDF4', borderColor: '#BBF7D0' }}>
           <CheckCircle2 className="h-4 w-4" style={{ color: '#16A34A' }} />
           <AlertDescription style={{ color: '#166534' }}>
-            Ticket <strong>{createdCase.ticketnumber}</strong> creado correctamente.
+            {t('newCase.createdBannerPrefix')} <strong>{createdCase.ticketnumber}</strong> {t('newCase.createdBannerSuffix')}
           </AlertDescription>
         </Alert>
       )}
@@ -180,33 +189,33 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="ticketnumber" className="flex items-center gap-1.5">
-            Número de caso <Lock className="h-3 w-3 text-muted-foreground" />
+            {t('newCase.caseNumber')} <Lock className="h-3 w-3 text-muted-foreground" />
           </Label>
           <Input
             id="ticketnumber"
             disabled
             value={createdCase?.ticketnumber || ''}
-            placeholder="Se asigna automáticamente al crear el ticket"
+            placeholder={t('newCase.caseNumberPlaceholder')}
           />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="owner" className="flex items-center gap-1.5">
-            Responsable <Lock className="h-3 w-3 text-muted-foreground" />
+            {t('table.owner')} <Lock className="h-3 w-3 text-muted-foreground" />
           </Label>
           <Input
             id="owner"
             disabled
-            value={createdCase?.ownerName || 'Soporte Grupo Staff'}
+            value={createdCase?.ownerName || t('newCase.defaultOwner')}
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="title">Título {!locked && '*'}</Label>
+        <Label htmlFor="title">{t('table.title')} {!locked && '*'}</Label>
         <Input
           id="title"
-          placeholder="Resumen breve del problema"
+          placeholder={t('newCase.titlePlaceholder')}
           disabled={locked}
           {...register('title')}
         />
@@ -218,7 +227,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5">
-            Cliente {isStaff && !locked && '*'} {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
+            {t('table.customer')} {isStaff && !locked && '*'} {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
           </Label>
           <D365Combobox
             entityType={isStaff || ownAccountId ? 'account' : 'contact'}
@@ -230,7 +239,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
 
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5">
-            Contacto {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
+            {t('table.contact')} {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
           </Label>
           <D365Combobox
             entityType="contact"
@@ -242,7 +251,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
 
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5">
-            Usuario cliente {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
+            {t('caseDetail.customerUser')} {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
           </Label>
           <D365Combobox
             entityType="contact"
@@ -254,7 +263,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
 
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5">
-            Origen {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
+            {t('caseDetail.origin')} {!isStaff && <Lock className="h-3 w-3 text-muted-foreground" />}
           </Label>
           <Select
             value={watch('origin')}
@@ -265,8 +274,8 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ORIGIN_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              {ORIGIN_KEYS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{t(o.key)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -275,20 +284,20 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
 
       {isStaff && (
         <div className="space-y-1.5">
-          <Label>Póliza (opcional)</Label>
+          <Label>{t('newCase.policyOptional')}</Label>
           <PolicyCombobox
             value={watch('policyId')}
             label={policyLabel}
             onChange={(id, name) => { setValue('policyId', id); setPolicyLabel(name); }}
             disabled={locked}
-            placeholder="Buscar póliza para vincular al ticket…"
+            placeholder={t('newCase.policySearchPlaceholder')}
           />
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label>Prioridad</Label>
+          <Label>{t('table.priority')}</Label>
           <Select
             value={watch('priority')}
             onValueChange={(val) => setValue('priority', val)}
@@ -298,36 +307,36 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">Crítica</SelectItem>
-              <SelectItem value="1">Alta</SelectItem>
-              <SelectItem value="2">Normal</SelectItem>
-              <SelectItem value="3">Baja</SelectItem>
+              <SelectItem value="0">{t('priority.critical')}</SelectItem>
+              <SelectItem value="1">{t('priority.high')}</SelectItem>
+              <SelectItem value="2">{t('priority.normal')}</SelectItem>
+              <SelectItem value="3">{t('priority.low')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-1.5">
-          <Label>Tipo de caso</Label>
+          <Label>{t('caseDetail.caseType')}</Label>
           <Select
             value={watch('caseType')}
             onValueChange={(val) => setValue('caseType', val)}
             disabled={locked}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Selecciona un tipo" />
+              <SelectValue placeholder={t('newCase.selectType')} />
             </SelectTrigger>
             <SelectContent>
-              {CASE_TYPE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              {CASE_TYPE_KEYS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{t(o.key)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
         <CatalogSelect
-          label="Categoría de servicio"
+          label={t('caseDetail.serviceCategory')}
           required={!locked}
-          placeholder="Selecciona una categoría"
+          placeholder={t('newCase.selectCategory')}
           options={serviceCategories}
           loading={catalogsLoading}
           value={watch('serviceCategoryId')}
@@ -337,9 +346,9 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
         />
 
         <CatalogSelect
-          label="Sistema"
+          label={t('caseDetail.system')}
           required={!locked}
-          placeholder="Selecciona un sistema"
+          placeholder={t('newCase.selectSystem')}
           options={systems}
           loading={catalogsLoading}
           value={watch('systemId')}
@@ -349,9 +358,9 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
         />
 
         <CatalogSelect
-          label="Módulo"
+          label={t('caseDetail.module')}
           required={!locked}
-          placeholder="Selecciona un módulo"
+          placeholder={t('newCase.selectModule')}
           options={areas}
           loading={catalogsLoading}
           value={watch('areaId')}
@@ -362,10 +371,10 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="description">Descripción {!locked && '*'}</Label>
+        <Label htmlFor="description">{t('caseDetail.description')} {!locked && '*'}</Label>
         <Textarea
           id="description"
-          placeholder="Describe el problema con el mayor detalle posible..."
+          placeholder={t('newCase.descriptionPlaceholder')}
           rows={6}
           disabled={locked}
           {...register('description')}
@@ -378,15 +387,15 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
       <div className="flex gap-3 pt-1">
         {createdCase ? (
           <Button type="button" onClick={onCreateAnother}>
-            Crear otro
+            {t('newCase.createAnother')}
           </Button>
         ) : (
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Enviando...' : 'Crear Ticket'}
+            {isSubmitting ? t('newCase.submitting') : t('newCase.createTicket')}
           </Button>
         )}
         <Button type="button" variant="outline" onClick={() => navigate('/cases')}>
-          Cancelar
+          {t('common.cancel')}
         </Button>
       </div>
     </form>
@@ -395,6 +404,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
 
 // ─── Página ────────────────────────────────────────────────────────────────────
 const NewCasePage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
@@ -423,22 +433,22 @@ const NewCasePage = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate('/cases')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-xl font-semibold">Nuevo Ticket</h1>
+          <h1 className="text-xl font-semibold">{t('nav.newTicket')}</h1>
         </div>
         <span
           className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
           style={{ background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }}
-          title="Los tickets creados desde el portal siempre quedan marcados como tal"
+          title={t('newCase.portalBadgeTitle')}
         >
-          <Lock className="h-3 w-3" /> Portal: Sí
+          <Lock className="h-3 w-3" /> {t('newCase.portalBadge')}
         </span>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Detalles de la solicitud</CardTitle>
+          <CardTitle className="text-base">{t('newCase.requestDetails')}</CardTitle>
           <CardDescription>
-            Completa la información para abrir un ticket de soporte.
+            {t('newCase.requestDetailsSubtitle')}
           </CardDescription>
         </CardHeader>
         <CardContent>

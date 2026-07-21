@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { ArrowUp, ArrowDown, ListFilter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useResizableColumns } from '../hooks/useResizableColumns';
+import i18n from '../i18n';
 
 /**
  * Tabla genérica con orden y filtro por columna (ícono en el encabezado) y
@@ -28,10 +30,11 @@ const compareValues = (a, b) => {
   if (b == null) return -1;
   if (a instanceof Date || b instanceof Date) return new Date(a) - new Date(b);
   if (typeof a === 'number' && typeof b === 'number') return a - b;
-  return String(a).localeCompare(String(b), 'es', { sensitivity: 'base' });
+  return String(a).localeCompare(String(b), i18n.language, { sensitivity: 'base' });
 };
 
 const ColumnFilter = ({ col, data, value, onChange }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
 
   const distinctValues = useMemo(() => {
@@ -69,7 +72,7 @@ const ColumnFilter = ({ col, data, value, onChange }) => {
         {col.filterType === 'select' ? (
           <div className="space-y-1 max-h-56 overflow-y-auto">
             {distinctValues.length === 0 && (
-              <p className="text-xs text-muted-foreground px-1 py-2">Sin valores</p>
+              <p className="text-xs text-muted-foreground px-1 py-2">{t('dataTable.noValues')}</p>
             )}
             {distinctValues.map((v) => {
               const checked = !value || value.has(v);
@@ -94,7 +97,7 @@ const ColumnFilter = ({ col, data, value, onChange }) => {
                 onClick={() => onChange(null)}
                 className="text-xs text-primary hover:underline px-1 pt-1"
               >
-                Limpiar filtro
+                {t('dataTable.clearFilter')}
               </button>
             )}
           </div>
@@ -102,7 +105,7 @@ const ColumnFilter = ({ col, data, value, onChange }) => {
           <div className="space-y-2">
             <Input
               autoFocus
-              placeholder={`Buscar en ${col.label}…`}
+              placeholder={t('dataTable.searchInColumn', { column: col.label })}
               value={query || value || ''}
               onChange={(e) => { setQuery(e.target.value); onChange(e.target.value || null); }}
               className="h-8 text-xs"
@@ -112,7 +115,7 @@ const ColumnFilter = ({ col, data, value, onChange }) => {
                 onClick={() => { setQuery(''); onChange(null); }}
                 className="text-xs text-primary hover:underline"
               >
-                Limpiar filtro
+                {t('dataTable.clearFilter')}
               </button>
             )}
           </div>
@@ -123,6 +126,7 @@ const ColumnFilter = ({ col, data, value, onChange }) => {
 };
 
 const DataTable = ({ columns, data, getRowKey, getRowClassName, getRowTitle, onRowClick, maxHeight = 'calc(100vh-320px)' }) => {
+  const { t } = useTranslation();
   const defaultWidths = useMemo(() => {
     const w = {};
     columns.forEach((c) => { w[c.label] = c.width || 150; });
@@ -235,7 +239,7 @@ const DataTable = ({ columns, data, getRowKey, getRowClassName, getRowTitle, onR
       </table>
       {visibleData.length === 0 && data.length > 0 && (
         <div className="py-10 text-center text-sm text-muted-foreground">
-          Sin resultados con los filtros de columna aplicados.
+          {t('dataTable.noColumnFilterResults')}
         </div>
       )}
     </div>

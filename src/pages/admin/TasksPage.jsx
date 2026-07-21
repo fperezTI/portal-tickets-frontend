@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { listTasks, updateTask } from '../../api/tasks';
 import { searchSystemUsers } from '../../api/d365';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import PolicyCombobox from '../../components/PolicyCombobox';
 
 // ─── Filtro multi-selección de usuarios ───────────────────────────────────────
 const UserMultiSelect = ({ selected, onChange }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState([]);
@@ -56,25 +58,25 @@ const UserMultiSelect = ({ selected, onChange }) => {
         <PopoverTrigger asChild>
           <Button type="button" variant="outline" role="combobox" size="sm" className="h-8 text-sm justify-between w-56">
             <span className="text-muted-foreground truncate">
-              {selected.length ? `${selected.length} usuario${selected.length > 1 ? 's' : ''} seleccionado${selected.length > 1 ? 's' : ''}` : 'Usuario que creó…'}
+              {selected.length ? t('tasksPage.usersSelected', { count: selected.length }) : t('tasksPage.createdByPlaceholder')}
             </span>
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-40 shrink-0" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-80" align="start">
           <Command shouldFilter={false}>
-            <CommandInput placeholder="Buscar usuario…" value={query} onValueChange={setQuery} />
+            <CommandInput placeholder={t('tasksPage.searchUser')} value={query} onValueChange={setQuery} />
             <CommandList>
               {loading && (
                 <div className="flex items-center justify-center py-6 gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Buscando…
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('combobox.searching')}
                 </div>
               )}
               {!loading && query.length < 2 && (
-                <CommandEmpty>Escribe al menos 2 caracteres para buscar</CommandEmpty>
+                <CommandEmpty>{t('combobox.typeToSearch')}</CommandEmpty>
               )}
               {!loading && query.length >= 2 && options.length === 0 && (
-                <CommandEmpty>Sin resultados para "{query}"</CommandEmpty>
+                <CommandEmpty>{t('combobox.noResultsFor', { query })}</CommandEmpty>
               )}
               {!loading && options.length > 0 && (
                 <CommandGroup>
@@ -117,6 +119,7 @@ const fromDatetimeLocal = (local) => (local ? new Date(local).toISOString() : nu
 
 // ─── Celdas editables (cada una gestiona su propio estado + auto-guardado) ────
 const DueDateCell = ({ task, onSaved }) => {
+  const { t } = useTranslation();
   const [dueDateLocal, setDueDateLocal] = useState(toDatetimeLocal(task.dueDate));
   const [saving, setSaving] = useState(false);
 
@@ -128,7 +131,7 @@ const DueDateCell = ({ task, onSaved }) => {
       const updated = await updateTask(task.id, { dueDate: nextIso });
       onSaved(task.id, updated);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+      toast.error(err.response?.data?.error || t('tasksPage.saveError'));
       setDueDateLocal(toDatetimeLocal(task.dueDate));
     } finally {
       setSaving(false);
@@ -150,6 +153,7 @@ const DueDateCell = ({ task, onSaved }) => {
 };
 
 const HoursCell = ({ task, field, onSaved }) => {
+  const { t } = useTranslation();
   const [value, setValue] = useState(task[field] ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -161,7 +165,7 @@ const HoursCell = ({ task, field, onSaved }) => {
       const updated = await updateTask(task.id, { [field]: num });
       onSaved(task.id, updated);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+      toast.error(err.response?.data?.error || t('tasksPage.saveError'));
       setValue(task[field] ?? '');
     } finally {
       setSaving(false);
@@ -185,6 +189,7 @@ const HoursCell = ({ task, field, onSaved }) => {
 };
 
 const AuditCell = ({ task, onSaved }) => {
+  const { t } = useTranslation();
   const [checked, setChecked] = useState(!!task.isAudit);
   const [saving, setSaving] = useState(false);
 
@@ -195,7 +200,7 @@ const AuditCell = ({ task, onSaved }) => {
       const updated = await updateTask(task.id, { isAudit: next });
       onSaved(task.id, updated);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+      toast.error(err.response?.data?.error || t('tasksPage.saveError'));
       setChecked(task.isAudit);
     } finally {
       setSaving(false);
@@ -211,6 +216,7 @@ const AuditCell = ({ task, onSaved }) => {
 };
 
 const PolicyCell = ({ task, onSaved }) => {
+  const { t } = useTranslation();
   const [policyId, setPolicyId] = useState(task.policyId || '');
   const [policyName, setPolicyName] = useState(task.policyName || '');
   const [saving, setSaving] = useState(false);
@@ -223,7 +229,7 @@ const PolicyCell = ({ task, onSaved }) => {
       setPolicyName(nextName);
       onSaved(task.id, updated);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar el cambio');
+      toast.error(err.response?.data?.error || t('tasksPage.saveError'));
     } finally {
       setSaving(false);
     }
@@ -236,7 +242,7 @@ const PolicyCell = ({ task, onSaved }) => {
         label={policyName}
         onChange={handleChange}
         disabled={saving}
-        placeholder="Heredada del ticket"
+        placeholder={t('tasksPage.inheritedFromTicket')}
       />
       {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
     </div>
@@ -245,42 +251,43 @@ const PolicyCell = ({ task, onSaved }) => {
 
 // ─── Tabla ─────────────────────────────────────────────────────────────────────
 const TasksTable = ({ tasks, onSaved, onNavigate }) => {
+  const { t } = useTranslation();
   const columns = [
-    { key: 'ticket', label: 'Ticket', width: 200, filterType: 'text',
-      accessor: (t) => t.regardingName,
-      render: (t) => (
+    { key: 'ticket', label: t('table.ticket'), width: 200, filterType: 'text',
+      accessor: (tk) => tk.regardingName,
+      render: (tk) => (
         <button
-          onClick={(e) => { e.stopPropagation(); onNavigate(t.regardingId); }}
+          onClick={(e) => { e.stopPropagation(); onNavigate(tk.regardingId); }}
           className="text-sm font-medium text-primary hover:underline text-left line-clamp-2"
-          title={t.regardingName}
+          title={tk.regardingName}
         >
-          {t.regardingName || '—'}
+          {tk.regardingName || '—'}
         </button>
       ) },
-    { key: 'poliza', label: 'Póliza', width: 190, filterType: 'text',
-      accessor: (t) => t.policyName,
-      render: (t) => <PolicyCell task={t} onSaved={onSaved} /> },
-    { key: 'asunto', label: 'Asunto', width: 240, filterType: 'text',
-      accessor: (t) => t.subject,
-      render: (t) => <span className="text-sm line-clamp-2">{t.subject || '—'}</span> },
-    { key: 'creadopor', label: 'Creado por', width: 150, filterType: 'text',
-      accessor: (t) => t.createdByName,
-      render: (t) => <span className="text-sm text-muted-foreground whitespace-nowrap">{t.createdByName || '—'}</span> },
-    { key: 'fechalimite', label: 'Fecha límite', width: 190, filterType: 'none',
-      accessor: (t) => t.dueDate ? new Date(t.dueDate) : null,
-      render: (t) => <DueDateCell task={t} onSaved={onSaved} /> },
-    { key: 'duracion', label: 'Duración', width: 100, filterType: 'none',
-      accessor: (t) => t.durationHours,
-      render: (t) => <span className="text-sm text-muted-foreground whitespace-nowrap">{t.durationHours != null ? `${fmtHours(t.durationHours)} h` : '—'}</span> },
-    { key: 'facturables', label: 'Horas facturables', width: 140, filterType: 'none',
-      accessor: (t) => t.billableHours,
-      render: (t) => <HoursCell task={t} field="billableHours" onSaved={onSaved} /> },
-    { key: 'reworking', label: 'Reworking', width: 120, filterType: 'none',
-      accessor: (t) => t.reworkingHours,
-      render: (t) => <HoursCell task={t} field="reworkingHours" onSaved={onSaved} /> },
-    { key: 'auditoria', label: 'Es auditoría', width: 110, filterType: 'select',
-      accessor: (t) => (t.isAudit ? 'Sí' : 'No'),
-      render: (t) => <AuditCell task={t} onSaved={onSaved} /> },
+    { key: 'poliza', label: t('policies.policy'), width: 190, filterType: 'text',
+      accessor: (tk) => tk.policyName,
+      render: (tk) => <PolicyCell task={tk} onSaved={onSaved} /> },
+    { key: 'asunto', label: t('tasksPage.subject'), width: 240, filterType: 'text',
+      accessor: (tk) => tk.subject,
+      render: (tk) => <span className="text-sm line-clamp-2">{tk.subject || '—'}</span> },
+    { key: 'creadopor', label: t('tasksPage.createdBy'), width: 150, filterType: 'text',
+      accessor: (tk) => tk.createdByName,
+      render: (tk) => <span className="text-sm text-muted-foreground whitespace-nowrap">{tk.createdByName || '—'}</span> },
+    { key: 'fechalimite', label: t('tasksPage.dueDate'), width: 190, filterType: 'none',
+      accessor: (tk) => tk.dueDate ? new Date(tk.dueDate) : null,
+      render: (tk) => <DueDateCell task={tk} onSaved={onSaved} /> },
+    { key: 'duracion', label: t('tasksPage.duration'), width: 100, filterType: 'none',
+      accessor: (tk) => tk.durationHours,
+      render: (tk) => <span className="text-sm text-muted-foreground whitespace-nowrap">{tk.durationHours != null ? `${fmtHours(tk.durationHours)} h` : '—'}</span> },
+    { key: 'facturables', label: t('tasksPage.billableHours'), width: 140, filterType: 'none',
+      accessor: (tk) => tk.billableHours,
+      render: (tk) => <HoursCell task={tk} field="billableHours" onSaved={onSaved} /> },
+    { key: 'reworking', label: t('tasksPage.reworking'), width: 120, filterType: 'none',
+      accessor: (tk) => tk.reworkingHours,
+      render: (tk) => <HoursCell task={tk} field="reworkingHours" onSaved={onSaved} /> },
+    { key: 'auditoria', label: t('tasksPage.isAudit'), width: 110, filterType: 'select',
+      accessor: (tk) => (tk.isAudit ? t('common.yes') : t('common.no')),
+      render: (tk) => <AuditCell task={tk} onSaved={onSaved} /> },
   ];
 
   return (
@@ -296,6 +303,7 @@ const TasksTable = ({ tasks, onSaved, onNavigate }) => {
 // ─── Página ────────────────────────────────────────────────────────────────────
 
 const TasksPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [dueDateFrom, setDueDateFrom] = useState('');
@@ -323,11 +331,11 @@ const TasksPage = () => {
       setTasks((prev) => (link ? [...prev, ...result.data] : result.data));
       setNextLink(result.nextLink);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar las tareas');
+      setError(err.response?.data?.error || t('tasksPage.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [selectedUsers, dueDateFrom, dueDateTo, subject]);
+  }, [selectedUsers, dueDateFrom, dueDateTo, subject, t]);
 
   useEffect(() => {
     setTasks([]);
@@ -351,8 +359,8 @@ const TasksPage = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Tareas</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Actividades tipo tarea asociadas a tickets</p>
+        <h1 className="text-xl font-semibold tracking-tight">{t('nav.tasks')}</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">{t('tasksPage.subtitle')}</p>
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
@@ -361,7 +369,7 @@ const TasksPage = () => {
           className="flex gap-1.5"
         >
           <Input
-            placeholder="Buscar por asunto…"
+            placeholder={t('tasksPage.searchBySubject')}
             value={subjectInput}
             onChange={(e) => setSubjectInput(e.target.value)}
             className="w-56 h-8 text-sm"
@@ -374,17 +382,17 @@ const TasksPage = () => {
         <UserMultiSelect selected={selectedUsers} onChange={setSelectedUsers} />
 
         <div className="flex items-center gap-1.5">
-          <Label className="text-xs text-muted-foreground">Desde</Label>
+          <Label className="text-xs text-muted-foreground">{t('tasksPage.from')}</Label>
           <Input type="date" value={dueDateFrom} onChange={(e) => setDueDateFrom(e.target.value)} className="h-8 text-sm w-36" />
         </div>
         <div className="flex items-center gap-1.5">
-          <Label className="text-xs text-muted-foreground">Hasta</Label>
+          <Label className="text-xs text-muted-foreground">{t('tasksPage.to')}</Label>
           <Input type="date" value={dueDateTo} onChange={(e) => setDueDateTo(e.target.value)} className="h-8 text-sm w-36" />
         </div>
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearFilters}>
-            <X className="mr-1 h-3.5 w-3.5" /> Limpiar
+            <X className="mr-1 h-3.5 w-3.5" /> {t('common.clear')}
           </Button>
         )}
       </div>
@@ -403,7 +411,7 @@ const TasksPage = () => {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-medium text-muted-foreground">
-            {loading && tasks.length === 0 ? 'Cargando…' : `${tasks.length}${nextLink ? '+' : ''} tarea${tasks.length !== 1 ? 's' : ''}`}
+            {loading && tasks.length === 0 ? t('common.loadingEllipsis') : t('tasksPage.taskCount', { count: tasks.length, plus: nextLink ? '+' : '' })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -413,7 +421,7 @@ const TasksPage = () => {
             </div>
           ) : tasks.length === 0 ? (
             <div className="py-14 text-center text-sm text-muted-foreground">
-              No hay tareas con los filtros aplicados.
+              {t('tasksPage.noResults')}
             </div>
           ) : (
             <TasksTable tasks={tasks} onSaved={handleSaved} onNavigate={(id) => navigate(`/cases/${id}`)} />
@@ -422,7 +430,7 @@ const TasksPage = () => {
           {nextLink && !loading && (
             <div className="py-1 px-4 text-center border-t">
               <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => fetchTasks(nextLink)}>
-                Cargar más tareas
+                {t('tasksPage.loadMore')}
               </Button>
             </div>
           )}

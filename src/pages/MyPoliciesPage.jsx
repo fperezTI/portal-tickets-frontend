@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../hooks/useDateLocale';
 import { listMyPolicies, listPolicyCustomers } from '../api/policies';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -26,35 +27,42 @@ const parseUSDate = (str) => {
   const [m, d, y] = str.split('/').map(Number);
   return new Date(y, m - 1, d);
 };
-const fmtUSDate = (str) => {
+const fmtUSDate = (str, locale) => {
   const date = parseUSDate(str);
-  return date ? format(date, 'dd MMM yyyy', { locale: es }) : null;
+  return date ? format(date, 'dd MMM yyyy', { locale }) : null;
 };
 
 // ─── Estado sin contacto/cuenta vinculada ─────────────────────────────────────
-const NotLinkedState = () => (
-  <div className="py-16 text-center space-y-3">
-    <ShieldOff className="mx-auto h-10 w-10 text-muted-foreground/40" />
-    <p className="font-medium text-sm">Tu cuenta no está vinculada a un contacto o empresa</p>
-    <p className="text-muted-foreground text-xs max-w-xs mx-auto">
-      Solicita al administrador que vincule tu usuario a un contacto o cuenta de Dynamics 365.
-    </p>
-  </div>
-);
+const NotLinkedState = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="py-16 text-center space-y-3">
+      <ShieldOff className="mx-auto h-10 w-10 text-muted-foreground/40" />
+      <p className="font-medium text-sm">{t('cases.notLinkedTitle')}</p>
+      <p className="text-muted-foreground text-xs max-w-xs mx-auto">
+        {t('cases.notLinkedBody')}
+      </p>
+    </div>
+  );
+};
 
 // ─── Estado: staff sin cliente seleccionado ───────────────────────────────────
-const SelectClientState = () => (
-  <div className="py-16 text-center space-y-3">
-    <Users className="mx-auto h-10 w-10 text-muted-foreground/40" />
-    <p className="font-medium text-sm">Selecciona un cliente</p>
-    <p className="text-muted-foreground text-xs max-w-xs mx-auto">
-      Elige un cliente en el filtro de arriba para ver sus pólizas.
-    </p>
-  </div>
-);
+const SelectClientState = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="py-16 text-center space-y-3">
+      <Users className="mx-auto h-10 w-10 text-muted-foreground/40" />
+      <p className="font-medium text-sm">{t('policies.selectClient')}</p>
+      <p className="text-muted-foreground text-xs max-w-xs mx-auto">
+        {t('policies.selectClientBody')}
+      </p>
+    </div>
+  );
+};
 
 // ─── Badge de estado ───────────────────────────────────────────────────────────
 const PolicyStatusBadge = ({ statecode }) => {
+  const { t } = useTranslation();
   const active = statecode === 0;
   return (
     <span
@@ -63,37 +71,39 @@ const PolicyStatusBadge = ({ statecode }) => {
         ? { background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }
         : { background: '#F4F4F5', color: '#71717A', border: '1px solid #E4E4E7' }}
     >
-      {active ? 'Activa' : 'Inactiva'}
+      {active ? t('policies.active') : t('policies.inactive')}
     </span>
   );
 };
 
 // ─── Tabla ─────────────────────────────────────────────────────────────────────
 const PoliciesTable = ({ policies, onRowClick }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const columns = [
-    { key: 'poliza', label: 'Póliza', width: 160, accessor: (p) => p.name,
+    { key: 'poliza', label: t('policies.policy'), width: 160, accessor: (p) => p.name,
       render: (p) => <span className="text-sm font-bold">{p.name}</span> },
-    { key: 'inicio', label: 'Fecha inicio', width: 130, filterType: 'none',
+    { key: 'inicio', label: t('policies.startDate'), width: 130, filterType: 'none',
       accessor: (p) => parseUSDate(p.startDateFormatted),
-      render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.startDateFormatted) || '—'}</span> },
-    { key: 'vencimiento', label: 'Fecha vencimiento', width: 150, filterType: 'none',
+      render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.startDateFormatted, dateLocale) || '—'}</span> },
+    { key: 'vencimiento', label: t('policies.dueDate'), width: 150, filterType: 'none',
       accessor: (p) => parseUSDate(p.dueDateFormatted),
-      render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.dueDateFormatted) || '—'}</span> },
-    { key: 'contratadas', label: 'Horas contratadas', width: 150, filterType: 'none',
+      render: (p) => <span className="text-muted-foreground whitespace-nowrap">{fmtUSDate(p.dueDateFormatted, dateLocale) || '—'}</span> },
+    { key: 'contratadas', label: t('policies.contractedHours'), width: 150, filterType: 'none',
       accessor: (p) => p.totalHours,
       render: (p) => <span className="whitespace-nowrap">{p.totalHours != null ? `${fmtHours(p.totalHours)} h` : '—'}</span> },
-    { key: 'consumidas', label: 'Horas consumidas', width: 150, filterType: 'none',
+    { key: 'consumidas', label: t('policies.consumedHours'), width: 150, filterType: 'none',
       accessor: (p) => p.consumedHours,
       render: (p) => <span className="whitespace-nowrap">{p.consumedHours != null ? `${fmtHours(p.consumedHours)} h` : '—'}</span> },
-    { key: 'disponibles', label: 'Horas disponibles', width: 150, filterType: 'none',
+    { key: 'disponibles', label: t('policies.availableHours'), width: 150, filterType: 'none',
       accessor: (p) => (p.totalHours != null && p.consumedHours != null ? p.totalHours - p.consumedHours : null),
       render: (p) => (
         <span className="whitespace-nowrap font-medium">
           {p.totalHours != null && p.consumedHours != null ? `${fmtHours(p.totalHours - p.consumedHours)} h` : '—'}
         </span>
       ) },
-    { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
-      accessor: (p) => (p.statecode === 0 ? 'Activa' : 'Inactiva'),
+    { key: 'estado', label: t('table.status'), width: 130, filterType: 'select',
+      accessor: (p) => (p.statecode === 0 ? t('policies.active') : t('policies.inactive')),
       render: (p) => <PolicyStatusBadge statecode={p.statecode} /> },
   ];
 
@@ -110,6 +120,7 @@ const PoliciesTable = ({ policies, onRowClick }) => {
 
 // ─── Página ────────────────────────────────────────────────────────────────────
 const MyPoliciesPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
@@ -154,11 +165,11 @@ const MyPoliciesPage = () => {
       setPolicies((prev) => (link ? [...prev, ...result.data] : result.data));
       setNextLink(result.nextLink);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar las pólizas');
+      setError(err.response?.data?.error || t('policies.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [hasCustomer, isStaff, selectedClient]);
+  }, [hasCustomer, isStaff, selectedClient, t]);
 
   useEffect(() => {
     setPolicies([]);
@@ -169,19 +180,19 @@ const MyPoliciesPage = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">{isStaff ? 'Pólizas' : 'Mis Pólizas'}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{isStaff ? t('nav.policies') : t('nav.myPolicies')}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {isStaff ? 'Pólizas por cliente' : 'Pólizas asociadas a tu cuenta'}
+          {isStaff ? t('policies.byCustomer') : t('policies.forYourAccount')}
         </p>
       </div>
 
       {isStaff && clients.length > 0 && (
         <Select value={selectedClientId || 'none'} onValueChange={(v) => setSelectedClientId(v === 'none' ? '' : v)}>
           <SelectTrigger className="w-64 h-9 text-sm">
-            <SelectValue placeholder="Selecciona un cliente" />
+            <SelectValue placeholder={t('policies.selectClient')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Selecciona un cliente</SelectItem>
+            <SelectItem value="none">{t('policies.selectClient')}</SelectItem>
             {clients.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
@@ -214,7 +225,7 @@ const MyPoliciesPage = () => {
           {!loading && hasCustomer && policies.length === 0 && !error && (
             <div className="py-14 text-center space-y-3">
               <p className="text-sm text-muted-foreground">
-                {isStaff ? 'Este cliente no tiene pólizas registradas.' : 'No tienes pólizas registradas.'}
+                {isStaff ? t('policies.noCustomerPolicies') : t('policies.noOwnPolicies')}
               </p>
             </div>
           )}
@@ -226,7 +237,7 @@ const MyPoliciesPage = () => {
           {nextLink && !loading && (
             <div className="py-1 px-4 text-center border-t">
               <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => fetchPolicies(nextLink)}>
-                Cargar más pólizas
+                {t('policies.loadMore')}
               </Button>
             </div>
           )}

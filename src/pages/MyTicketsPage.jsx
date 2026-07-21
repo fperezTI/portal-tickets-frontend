@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../hooks/useDateLocale';
 import { listMyCases, cancelCase } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,17 +23,18 @@ import DataTable from '../components/DataTable';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
-  0: { label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' },
-  1: { label: 'Alta',    color: '#EA580C', bg: '#FFF7ED' },
-  2: { label: 'Normal',  color: '#1B3860', bg: '#EFF6FF' },
-  3: { label: 'Baja',    color: '#16A34A', bg: '#F0FDF4' },
+  0: { key: 'priority.critical', color: '#DC2626', bg: '#FEF2F2' },
+  1: { key: 'priority.high',     color: '#EA580C', bg: '#FFF7ED' },
+  2: { key: 'priority.normal',   color: '#1B3860', bg: '#EFF6FF' },
+  3: { key: 'priority.low',      color: '#16A34A', bg: '#F0FDF4' },
 };
 const PriorityBadge = ({ code }) => {
+  const { t } = useTranslation();
   const p = PRIORITY_COLOR[code];
   if (!p) return <span className="text-muted-foreground text-xs">—</span>;
   return (
     <span style={{ color: p.color, background: p.bg, borderRadius: 9999, padding: '2px 10px', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>
-      {p.label}
+      {t(p.key)}
     </span>
   );
 };
@@ -65,18 +67,22 @@ const StageBadge = ({ name }) => {
 };
 
 // ─── Estado sin contacto vinculado ─────────────────────────────────────────────
-const NotLinkedState = () => (
-  <div className="py-16 text-center space-y-3">
-    <UserX className="mx-auto h-10 w-10 text-muted-foreground/40" />
-    <p className="font-medium text-sm">Tu cuenta no está vinculada a un contacto</p>
-    <p className="text-muted-foreground text-xs max-w-xs mx-auto">
-      Solicita al administrador que vincule tu usuario a un contacto de Dynamics 365.
-    </p>
-  </div>
-);
+const NotLinkedState = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="py-16 text-center space-y-3">
+      <UserX className="mx-auto h-10 w-10 text-muted-foreground/40" />
+      <p className="font-medium text-sm">{t('myTickets.notLinkedTitle')}</p>
+      <p className="text-muted-foreground text-xs max-w-xs mx-auto">
+        {t('myTickets.notLinkedBody')}
+      </p>
+    </div>
+  );
+};
 
 // ─── Barra de filtros ─────────────────────────────────────────────────────────
 const FilterBar = ({ filters, onChange, onClear }) => {
+  const { t } = useTranslation();
   const [searchInput, setSearchInput] = useState(filters.search       || '');
   const [ticketInput, setTicketInput] = useState(filters.ticketNumber || '');
   const hasActive = filters.search || filters.ticketNumber || filters.priority !== '';
@@ -88,7 +94,7 @@ const FilterBar = ({ filters, onChange, onClear }) => {
         className="flex gap-1.5"
       >
         <Input
-          placeholder="Buscar por título…"
+          placeholder={t('cases.searchByTitle')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="w-48 h-8 text-sm"
@@ -103,7 +109,7 @@ const FilterBar = ({ filters, onChange, onClear }) => {
         className="flex gap-1.5"
       >
         <Input
-          placeholder="No. de ticket…"
+          placeholder={t('cases.ticketNumberPlaceholder')}
           value={ticketInput}
           onChange={(e) => setTicketInput(e.target.value)}
           className="w-40 h-8 text-sm font-mono"
@@ -118,21 +124,21 @@ const FilterBar = ({ filters, onChange, onClear }) => {
         onValueChange={(v) => onChange('priority', v === 'all' ? '' : v)}
       >
         <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Prioridad" />
+          <SelectValue placeholder={t('table.priority')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todas las prioridades</SelectItem>
-          <SelectItem value="0">Crítica</SelectItem>
-          <SelectItem value="1">Alta</SelectItem>
-          <SelectItem value="2">Normal</SelectItem>
-          <SelectItem value="3">Baja</SelectItem>
+          <SelectItem value="all">{t('cases.allPriorities')}</SelectItem>
+          <SelectItem value="0">{t('priority.critical')}</SelectItem>
+          <SelectItem value="1">{t('priority.high')}</SelectItem>
+          <SelectItem value="2">{t('priority.normal')}</SelectItem>
+          <SelectItem value="3">{t('priority.low')}</SelectItem>
         </SelectContent>
       </Select>
 
       {hasActive && (
         <Button variant="ghost" size="sm" className="h-8 text-xs"
           onClick={() => { setSearchInput(''); setTicketInput(''); onClear(); }}>
-          <X className="mr-1 h-3.5 w-3.5" /> Limpiar
+          <X className="mr-1 h-3.5 w-3.5" /> {t('common.clear')}
         </Button>
       )}
     </div>
@@ -141,24 +147,26 @@ const FilterBar = ({ filters, onChange, onClear }) => {
 
 // ─── Tabla de tickets ─────────────────────────────────────────────────────────
 const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const columns = [
-    { key: 'ticket', label: 'Ticket', width: 190, accessor: (c) => c.ticketnumber,
+    { key: 'ticket', label: t('table.ticket'), width: 190, accessor: (c) => c.ticketnumber,
       render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
-    { key: 'title', label: 'Título', width: 220, accessor: (c) => c.title,
+    { key: 'title', label: t('table.title'), width: 220, accessor: (c) => c.title,
       render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
-    { key: 'etapa', label: 'Etapa', width: 130, filterType: 'select',
+    { key: 'etapa', label: t('table.stage'), width: 130, filterType: 'select',
       accessor: (c) => c.activeStage, render: (c) => <StageBadge name={c.activeStage} /> },
-    { key: 'prioridad', label: 'Prioridad', width: 150, filterType: 'select',
-      accessor: (c) => PRIORITY_COLOR[c.prioritycode]?.label, render: (c) => <PriorityBadge code={c.prioritycode} /> },
-    { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
+    { key: 'prioridad', label: t('table.priority'), width: 150, filterType: 'select',
+      accessor: (c) => PRIORITY_COLOR[c.prioritycode] ? t(PRIORITY_COLOR[c.prioritycode].key) : null, render: (c) => <PriorityBadge code={c.prioritycode} /> },
+    { key: 'responsable', label: t('table.owner'), width: 150, filterType: 'text',
       accessor: (c) => c.ownerName,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
-    { key: 'horas', label: 'Horas', width: 100, filterType: 'none',
+    { key: 'horas', label: t('table.hours'), width: 100, filterType: 'none',
       accessor: (c) => c.billableHours ?? 0,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.billableHours ? `${fmtHours(c.billableHours)}h` : '—'}</span> },
-    { key: 'creado', label: 'Creado', width: 110, filterType: 'none',
+    { key: 'creado', label: t('table.created'), width: 110, filterType: 'none',
       accessor: (c) => c.createdon ? new Date(c.createdon) : null,
-      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}</span> },
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: dateLocale }) : '—'}</span> },
     { key: 'accion', label: '', width: 60, sortable: false, filterType: 'none', accessor: () => null, className: 'text-right',
       render: (c) => (c.new_portal && c.statecode !== 2 ? (
         <Button
@@ -168,7 +176,7 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
           onClick={(e) => { e.stopPropagation(); onDeleteClick(c); }}
         >
           <Trash2 className="h-3.5 w-3.5" />
-          <span className="sr-only">Eliminar</span>
+          <span className="sr-only">{t('common.delete')}</span>
         </Button>
       ) : null) },
   ];
@@ -178,7 +186,7 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
       columns={columns}
       data={cases}
       getRowKey={(c) => c.incidentid}
-      getRowTitle={(c) => c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
+      getRowTitle={(c) => c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
       getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
       onRowClick={(c) => onRowClick(c.incidentid)}
       maxHeight="calc(100vh-320px)"
@@ -191,6 +199,7 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
 const DEFAULT_FILTERS = { search: '', ticketNumber: '', priority: '' };
 
 const MyTicketsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const hasCustomer = !!user?.d365ContactId;
@@ -219,11 +228,11 @@ const MyTicketsPage = () => {
       setCases((prev) => (link ? [...prev, ...result.data] : result.data));
       setNextLink(result.nextLink);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar tus tickets');
+      setError(err.response?.data?.error || t('myTickets.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [hasCustomer, filters]);
+  }, [hasCustomer, filters, t]);
 
   useEffect(() => {
     setCases([]);
@@ -238,11 +247,11 @@ const MyTicketsPage = () => {
     if (!deleting) return;
     try {
       await cancelCase(deleting.incidentid);
-      toast.success(`Ticket ${deleting.ticketnumber} eliminado`);
+      toast.success(t('myTickets.deletedToast', { ticket: deleting.ticketnumber }));
       setDeleting(null);
       fetchCases();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al eliminar el ticket');
+      toast.error(err.response?.data?.error || t('myTickets.deleteError'));
     }
   };
 
@@ -251,7 +260,7 @@ const MyTicketsPage = () => {
       {/* ── Encabezado + filtros — sticky bajo el navbar ── */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b pb-3 pt-1 -mx-8 px-8 space-y-3">
         <div className="flex items-center justify-between gap-4 flex-wrap pt-2">
-          <h1 className="text-xl font-semibold tracking-tight">Mis Tickets</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t('nav.myTickets')}</h1>
         </div>
 
         {hasCustomer && (
@@ -288,7 +297,7 @@ const MyTicketsPage = () => {
 
           {!loading && hasCustomer && cases.length === 0 && !error && (
             <div className="py-14 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">No hay tickets con los filtros aplicados.</p>
+              <p className="text-sm text-muted-foreground">{t('cases.noResults')}</p>
             </div>
           )}
 
@@ -303,7 +312,7 @@ const MyTicketsPage = () => {
           {nextLink && !loading && (
             <div className="py-1 px-4 text-center border-t">
               <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => fetchCases(nextLink)}>
-                Cargar más tickets
+                {t('cases.loadMore')}
               </Button>
             </div>
           )}
@@ -314,19 +323,19 @@ const MyTicketsPage = () => {
       <Dialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Eliminar ticket</DialogTitle>
+            <DialogTitle>{t('myTickets.deleteDialogTitle')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            ¿Estás seguro de que deseas eliminar el ticket{' '}
+            {t('myTickets.deleteDialogBody')}{' '}
             <span className="font-semibold text-foreground">{deleting?.ticketnumber}</span>?
-            Esta acción cancela el ticket y no se puede deshacer.
+            {' '}{t('myTickets.deleteDialogWarning')}
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleting(null)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
-              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+              <Trash2 className="mr-2 h-4 w-4" /> {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

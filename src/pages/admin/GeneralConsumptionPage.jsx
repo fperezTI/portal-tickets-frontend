@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import { useDateLocale } from '../../hooks/useDateLocale';
 import { getGeneralConsumption } from '../../api/cases';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,6 +12,14 @@ import {
 } from '@/components/ui/select';
 import { Gauge, Clock, PlusCircle, CheckCircle2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { fmtHours as fmtHoursShared, cn } from '@/lib/utils';
+
+// El backend devuelve `label` ya formateado en español (server-side, para el
+// caso de que se consuma desde otro cliente) — para la UI se recalcula en el
+// idioma activo a partir de la clave "YYYY-MM", igual que el resto de fechas.
+const monthKeyToLabel = (monthKey, locale) => {
+  const [y, m] = monthKey.split('-').map(Number);
+  return format(new Date(y, m - 1, 1), 'MMMM yyyy', { locale });
+};
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
@@ -33,6 +44,8 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
 );
 
 const GeneralConsumptionPage = () => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const year = parseInt(searchParams.get('year') || String(CURRENT_YEAR));
   const setYear = (y) => setSearchParams((prev) => {
@@ -56,11 +69,11 @@ const GeneralConsumptionPage = () => {
       setTrend(result?.trend || []);
       setForecast(result?.forecast || []);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar el consumo general');
+      setError(err.response?.data?.error || t('generalConsumption.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [year]);
+  }, [year, t]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -87,10 +100,10 @@ const GeneralConsumptionPage = () => {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <Gauge className="h-5 w-5 text-primary" /> Consumo General
+            <Gauge className="h-5 w-5 text-primary" /> {t('nav.generalConsumption')}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Horas trabajadas (Duration de tareas) y tickets creados/cerrados, por mes — todos los clientes
+            {t('generalConsumption.subtitle')}
           </p>
         </div>
         <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))}>
@@ -120,7 +133,7 @@ const GeneralConsumptionPage = () => {
           <KpiCard
             icon={Clock}
             value={fmtHoursShared(totals.hoursWorked)}
-            label={`Horas trabajadas ${year}`}
+            label={t('generalConsumption.hoursWorkedYear', { year })}
             iconBg="bg-primary/10"
             iconColor="text-primary"
             valueColor="text-primary"
@@ -128,7 +141,7 @@ const GeneralConsumptionPage = () => {
           <KpiCard
             icon={PlusCircle}
             value={totals.ticketsCreated}
-            label={`Tickets creados ${year}`}
+            label={t('generalConsumption.ticketsCreatedYear', { year })}
             iconBg="bg-blue-50"
             iconColor="text-blue-900"
             valueColor="text-blue-900"
@@ -136,7 +149,7 @@ const GeneralConsumptionPage = () => {
           <KpiCard
             icon={CheckCircle2}
             value={totals.ticketsClosed}
-            label={`Tickets cerrados ${year}`}
+            label={t('generalConsumption.ticketsClosedYear', { year })}
             iconBg="bg-green-50"
             iconColor="text-green-600"
             valueColor="text-green-600"
@@ -153,10 +166,10 @@ const GeneralConsumptionPage = () => {
             {forecastInsight && forecastInsight.deltaPct > 3 && <TrendingUp className="h-4 w-4 text-amber-600" />}
             {forecastInsight && forecastInsight.deltaPct < -3 && <TrendingDown className="h-4 w-4 text-green-600" />}
             {forecastInsight && Math.abs(forecastInsight.deltaPct) <= 3 && <Minus className="h-4 w-4 text-muted-foreground" />}
-            Proyección próximos 3 meses (forecast de personal)
+            {t('generalConsumption.forecastTitle')}
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Tendencia lineal sobre los últimos {trend.length || 6} meses ya cerrados — úsala como referencia de carga de trabajo esperada para dimensionar al equipo.
+            {t('generalConsumption.forecastSubtitle', { count: trend.length || 6 })}
           </p>
         </CardHeader>
         <CardContent>
@@ -168,20 +181,20 @@ const GeneralConsumptionPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {forecast.map((m) => (
                 <div key={m.month} className="rounded-lg border border-dashed p-3 bg-muted/20">
-                  <p className="text-xs text-muted-foreground capitalize truncate">{m.label}</p>
+                  <p className="text-xs text-muted-foreground capitalize truncate">{monthKeyToLabel(m.month, dateLocale)}</p>
                   <p className="text-xl font-bold mt-1 text-primary">{fmtHoursShared(m.hoursWorked)}h</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Estimado</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{t('generalConsumption.estimated')}</p>
                 </div>
               ))}
               <div className="rounded-lg border p-3 bg-primary/5 border-primary/20">
-                <p className="text-xs text-muted-foreground truncate">Total proyectado</p>
+                <p className="text-xs text-muted-foreground truncate">{t('generalConsumption.totalProjected')}</p>
                 <p className="text-xl font-bold mt-1">{forecastInsight ? fmtHoursShared(forecastInsight.total) : '—'}h</p>
                 {forecastInsight && (
                   <p className={cn(
                     'text-[10px] mt-0.5 font-medium',
                     forecastInsight.deltaPct > 3 ? 'text-amber-600' : forecastInsight.deltaPct < -3 ? 'text-green-600' : 'text-muted-foreground'
                   )}>
-                    {forecastInsight.deltaPct > 0 ? '+' : ''}{forecastInsight.deltaPct}% vs. promedio tendencia
+                    {forecastInsight.deltaPct > 0 ? '+' : ''}{forecastInsight.deltaPct}% {t('generalConsumption.vsTrendAverage')}
                   </p>
                 )}
               </div>
@@ -200,7 +213,7 @@ const GeneralConsumptionPage = () => {
 
           {!loading && months.length === 0 && !error && (
             <div className="py-16 text-center text-sm text-muted-foreground">
-              No hay datos de consumo para mostrar.
+              {t('generalConsumption.noData')}
             </div>
           )}
 
@@ -209,16 +222,16 @@ const GeneralConsumptionPage = () => {
               <table className="w-full text-sm">
                 <thead className="bg-muted/60 border-y">
                   <tr>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap capitalize">Mes</th>
-                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Horas trabajadas</th>
-                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Tickets creados</th>
-                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Tickets cerrados</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap capitalize">{t('generalConsumption.month')}</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{t('generalConsumption.hoursWorked')}</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{t('generalConsumption.ticketsCreated')}</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{t('generalConsumption.ticketsClosed')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {months.map((m) => (
                     <tr key={m.month} className="hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-2.5 font-medium capitalize whitespace-nowrap">{m.label}</td>
+                      <td className="px-4 py-2.5 font-medium capitalize whitespace-nowrap">{monthKeyToLabel(m.month, dateLocale)}</td>
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">{fmtHoursShared(m.hoursWorked)}</td>
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">{m.ticketsCreated}</td>
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">{m.ticketsClosed}</td>
@@ -227,7 +240,7 @@ const GeneralConsumptionPage = () => {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 font-bold">
-                    <td className="px-4 py-2.5 whitespace-nowrap">Total</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{t('consumption.total')}</td>
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">{fmtHoursShared(totals.hoursWorked)}</td>
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">{totals.ticketsCreated}</td>
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">{totals.ticketsClosed}</td>

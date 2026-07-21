@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../hooks/useDateLocale';
 import { listCases } from '../api/cases';
 import { listUsers } from '../api/users';
 import { resolveAccount, resolveContact } from '../api/d365';
@@ -21,17 +22,18 @@ import DataTable from '../components/DataTable';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {
-  0: { label: 'Crítica', color: '#DC2626', bg: '#FEF2F2' },
-  1: { label: 'Alta',    color: '#EA580C', bg: '#FFF7ED' },
-  2: { label: 'Normal',  color: '#1B3860', bg: '#EFF6FF' },
-  3: { label: 'Baja',    color: '#16A34A', bg: '#F0FDF4' },
+  0: { key: 'priority.critical', color: '#DC2626', bg: '#FEF2F2' },
+  1: { key: 'priority.high',     color: '#EA580C', bg: '#FFF7ED' },
+  2: { key: 'priority.normal',   color: '#1B3860', bg: '#EFF6FF' },
+  3: { key: 'priority.low',      color: '#16A34A', bg: '#F0FDF4' },
 };
 const PriorityBadge = ({ code }) => {
+  const { t } = useTranslation();
   const p = PRIORITY_COLOR[code];
   if (!p) return <span className="text-muted-foreground text-xs">—</span>;
   return (
     <span style={{ color: p.color, background: p.bg, borderRadius: 9999, padding: '2px 10px', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>
-      {p.label}
+      {t(p.key)}
     </span>
   );
 };
@@ -65,34 +67,38 @@ const StageBadge = ({ name }) => {
 };
 
 // ─── Estado sin contacto/cuenta vinculada ─────────────────────────────────────
-const NotLinkedState = () => (
-  <div className="py-16 text-center space-y-3">
-    <UserX className="mx-auto h-10 w-10 text-muted-foreground/40" />
-    <p className="font-medium text-sm">Tu cuenta no está vinculada a un contacto o empresa</p>
-    <p className="text-muted-foreground text-xs max-w-xs mx-auto">
-      Solicita al administrador que vincule tu usuario a un contacto o cuenta de Dynamics 365.
-    </p>
-  </div>
-);
+const NotLinkedState = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="py-16 text-center space-y-3">
+      <UserX className="mx-auto h-10 w-10 text-muted-foreground/40" />
+      <p className="font-medium text-sm">{t('cases.notLinkedTitle')}</p>
+      <p className="text-muted-foreground text-xs max-w-xs mx-auto">
+        {t('cases.notLinkedBody')}
+      </p>
+    </div>
+  );
+};
 
 // ─── Filtro de contacto para staff ───────────────────────────────────────────
 const ContactFilter = ({ value, onSearch }) => {
+  const { t } = useTranslation();
   const [input, setInput] = useState(value || '');
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSearch(input.trim()); }} className="flex gap-2">
       <Input
-        placeholder="ID de contacto o cuenta en D365 (GUID)…"
+        placeholder={t('cases.contactIdPlaceholder')}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         className="w-80 font-mono text-xs"
       />
       <Button type="submit" variant="secondary" size="sm">
-        <Search className="mr-2 h-4 w-4" /> Buscar
+        <Search className="mr-2 h-4 w-4" /> {t('common.search')}
       </Button>
       {value && (
         <Button type="button" variant="ghost" size="sm"
           onClick={() => { setInput(''); onSearch(''); }}>
-          Limpiar
+          {t('common.clear')}
         </Button>
       )}
     </form>
@@ -101,6 +107,7 @@ const ContactFilter = ({ value, onSearch }) => {
 
 // ─── Barra de filtros ─────────────────────────────────────────────────────────
 const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }) => {
+  const { t } = useTranslation();
   const [searchInput,  setSearchInput]  = useState(filters.search       || '');
   const [ticketInput,  setTicketInput]  = useState(filters.ticketNumber || '');
   const hasActive = filters.search || filters.ticketNumber || filters.statecode !== '' || filters.priority !== '' || filters.clientId !== '';
@@ -112,7 +119,7 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         className="flex gap-1.5"
       >
         <Input
-          placeholder="Buscar por título…"
+          placeholder={t('cases.searchByTitle')}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="w-48 h-8 text-sm"
@@ -127,7 +134,7 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         className="flex gap-1.5"
       >
         <Input
-          placeholder="No. de ticket…"
+          placeholder={t('cases.ticketNumberPlaceholder')}
           value={ticketInput}
           onChange={(e) => setTicketInput(e.target.value)}
           className="w-40 h-8 text-sm font-mono"
@@ -143,10 +150,10 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
           onValueChange={(v) => onChange('clientId', v === 'all' ? '' : v)}
         >
           <SelectTrigger className="w-44 h-8 text-sm">
-            <SelectValue placeholder="Cliente" />
+            <SelectValue placeholder={t('cases.client')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
+            <SelectItem value="all">{t('cases.allClients')}</SelectItem>
             {clients.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>
             ))}
@@ -159,13 +166,13 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         onValueChange={(v) => onChange('statecode', v === 'all' ? '' : v)}
       >
         <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Estado" />
+          <SelectValue placeholder={t('table.status')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos los estados</SelectItem>
-          <SelectItem value="0">Activo</SelectItem>
-          <SelectItem value="1">Resuelto</SelectItem>
-          <SelectItem value="2">Cancelado</SelectItem>
+          <SelectItem value="all">{t('cases.allStatuses')}</SelectItem>
+          <SelectItem value="0">{t('status.active')}</SelectItem>
+          <SelectItem value="1">{t('status.resolved')}</SelectItem>
+          <SelectItem value="2">{t('status.cancelled')}</SelectItem>
         </SelectContent>
       </Select>
 
@@ -174,21 +181,21 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
         onValueChange={(v) => onChange('priority', v === 'all' ? '' : v)}
       >
         <SelectTrigger className="w-36 h-8 text-sm">
-          <SelectValue placeholder="Prioridad" />
+          <SelectValue placeholder={t('table.priority')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todas las prioridades</SelectItem>
-          <SelectItem value="0">Crítica</SelectItem>
-          <SelectItem value="1">Alta</SelectItem>
-          <SelectItem value="2">Normal</SelectItem>
-          <SelectItem value="3">Baja</SelectItem>
+          <SelectItem value="all">{t('cases.allPriorities')}</SelectItem>
+          <SelectItem value="0">{t('priority.critical')}</SelectItem>
+          <SelectItem value="1">{t('priority.high')}</SelectItem>
+          <SelectItem value="2">{t('priority.normal')}</SelectItem>
+          <SelectItem value="3">{t('priority.low')}</SelectItem>
         </SelectContent>
       </Select>
 
       {hasActive && (
         <Button variant="ghost" size="sm" className="h-8 text-xs"
           onClick={() => { setSearchInput(''); setTicketInput(''); onClear(); }}>
-          <X className="mr-1 h-3.5 w-3.5" /> Limpiar
+          <X className="mr-1 h-3.5 w-3.5" /> {t('common.clear')}
         </Button>
       )}
     </div>
@@ -196,37 +203,39 @@ const FilterBar = ({ filters, onChange, onClear, clients = [], isStaff = false }
 };
 
 // ─── Tabla de tickets ─────────────────────────────────────────────────────────
-const STATUS_LABEL = { 0: 'Activo', 1: 'Resuelto', 2: 'Cancelado' };
+const STATUS_KEY = { 0: 'status.active', 1: 'status.resolved', 2: 'status.cancelled' };
 
 const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const columns = [
-    { key: 'ticket', label: 'Ticket', width: 190, accessor: (c) => c.ticketnumber,
+    { key: 'ticket', label: t('table.ticket'), width: 190, accessor: (c) => c.ticketnumber,
       render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
-    { key: 'title', label: 'Título', width: 220, accessor: (c) => c.title,
+    { key: 'title', label: t('table.title'), width: 220, accessor: (c) => c.title,
       render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
     ...(showCustomer ? [{
-      key: 'cliente', label: 'Cliente', width: 150, filterType: 'text',
+      key: 'cliente', label: t('table.customer'), width: 150, filterType: 'text',
       accessor: (c) => c.customerName,
       render: (c) => <span className="text-muted-foreground text-xs">{c.customerName || '—'}</span>,
     }] : []),
-    { key: 'etapa', label: 'Etapa', width: 130, filterType: 'select',
+    { key: 'etapa', label: t('table.stage'), width: 130, filterType: 'select',
       accessor: (c) => c.activeStage, render: (c) => <StageBadge name={c.activeStage} /> },
-    { key: 'prioridad', label: 'Prioridad', width: 150, filterType: 'select',
-      accessor: (c) => PRIORITY_COLOR[c.prioritycode]?.label, render: (c) => <PriorityBadge code={c.prioritycode} /> },
-    { key: 'contacto', label: 'Contacto', width: 150, filterType: 'text',
+    { key: 'prioridad', label: t('table.priority'), width: 150, filterType: 'select',
+      accessor: (c) => PRIORITY_COLOR[c.prioritycode] ? t(PRIORITY_COLOR[c.prioritycode].key) : null, render: (c) => <PriorityBadge code={c.prioritycode} /> },
+    { key: 'contacto', label: t('table.contact'), width: 150, filterType: 'text',
       accessor: (c) => c.contactName,
       render: (c) => <span className="text-muted-foreground text-xs">{c.contactName || '—'}</span> },
-    { key: 'estado', label: 'Estado', width: 130, filterType: 'select',
-      accessor: (c) => STATUS_LABEL[c.statecode], render: (c) => <CaseStatusBadge statecode={c.statecode} /> },
-    { key: 'responsable', label: 'Responsable', width: 150, filterType: 'text',
+    { key: 'estado', label: t('table.status'), width: 130, filterType: 'select',
+      accessor: (c) => STATUS_KEY[c.statecode] ? t(STATUS_KEY[c.statecode]) : null, render: (c) => <CaseStatusBadge statecode={c.statecode} /> },
+    { key: 'responsable', label: t('table.owner'), width: 150, filterType: 'text',
       accessor: (c) => c.ownerName,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.ownerName || '—'}</span> },
-    { key: 'horas', label: 'Horas', width: 100, filterType: 'none',
+    { key: 'horas', label: t('table.hours'), width: 100, filterType: 'none',
       accessor: (c) => c.billableHours ?? 0,
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.billableHours ? `${fmtHours(c.billableHours)}h` : '—'}</span> },
-    { key: 'creado', label: 'Creado', width: 110, filterType: 'none',
+    { key: 'creado', label: t('table.created'), width: 110, filterType: 'none',
       accessor: (c) => c.createdon ? new Date(c.createdon) : null,
-      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: es }) : '—'}</span> },
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: dateLocale }) : '—'}</span> },
   ];
 
   return (
@@ -234,7 +243,7 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
       columns={columns}
       data={cases}
       getRowKey={(c) => c.incidentid}
-      getRowTitle={(c) => c.cre2f_iswarranty ? 'Ticket de garantía' : undefined}
+      getRowTitle={(c) => c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
       getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
       onRowClick={(c) => onRowClick(c.incidentid)}
       maxHeight="calc(100vh-320px)"
@@ -246,6 +255,7 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
 const DEFAULT_FILTERS = { search: '', ticketNumber: '', statecode: '', priority: '', clientId: '' };
 
 const CasesPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isStaff  = STAFF_ROLES.includes(user?.role);
@@ -301,11 +311,11 @@ const CasesPage = () => {
       setCases((prev) => (link ? [...prev, ...result.data] : result.data));
       setNextLink(result.nextLink);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar los tickets');
+      setError(err.response?.data?.error || t('cases.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [isStaff, effectiveContactId, clients, filters]);
+  }, [isStaff, effectiveContactId, clients, filters, t]);
 
   useEffect(() => {
     setCases([]);
@@ -324,8 +334,8 @@ const CasesPage = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap pt-2">
           <h1 className="text-xl font-semibold tracking-tight">
             {isStaff
-              ? 'Todos los tickets'
-              : <>Tickets de <span className="text-primary">{customerLabel}</span></>}
+              ? t('cases.allTickets')
+              : <>{t('cases.ticketsOf')} <span className="text-primary">{customerLabel}</span></>}
           </h1>
         </div>
 
@@ -369,7 +379,7 @@ const CasesPage = () => {
           {/* Sin resultados */}
           {!loading && hasCustomer && cases.length === 0 && !error && (
             <div className="py-14 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">No hay tickets con los filtros aplicados.</p>
+              <p className="text-sm text-muted-foreground">{t('cases.noResults')}</p>
             </div>
           )}
 
@@ -386,7 +396,7 @@ const CasesPage = () => {
           {nextLink && !loading && (
             <div className="py-1 px-4 text-center border-t">
               <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => fetchCases(nextLink)}>
-                Cargar más tickets
+                {t('cases.loadMore')}
               </Button>
             </div>
           )}

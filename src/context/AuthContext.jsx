@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import i18n from '../i18n';
 import { login as apiLogin, logout as apiLogout } from '../api/auth';
 import { setAccessToken, clearAccessToken } from '../utils/tokenStore';
 
@@ -37,6 +38,13 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('auth:logout', handle);
     return () => window.removeEventListener('auth:logout', handle);
   }, []);
+
+  // El idioma de la interfaz es el que el admin le asignó al usuario
+  // (campo Idioma en Usuarios) — se aplica en cuanto se conoce la sesión,
+  // tanto al restaurarla al montar como al hacer login.
+  useEffect(() => {
+    i18n.changeLanguage(user?.language || 'es');
+  }, [user?.language]);
 
   const login = async (email, password) => {
     const data = await apiLogin(email, password);

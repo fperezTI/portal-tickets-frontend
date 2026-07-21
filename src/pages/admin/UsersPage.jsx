@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useDateLocale } from '../../hooks/useDateLocale';
 import { listUsers, createUser, updateUser, deleteUser } from '../../api/users';
 import D365Combobox from '../../components/D365Combobox';
 import { Button } from '@/components/ui/button';
@@ -26,8 +27,9 @@ import { toast } from 'sonner';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const ROLE_LABEL   = { admin: 'Admin', support: 'Soporte', client: 'Cliente' };
+const ROLE_LABEL_KEY   = { admin: 'usersPage.roleAdmin', support: 'usersPage.roleSupport', client: 'usersPage.roleClient' };
 const ROLE_VARIANT = { admin: 'default', support: 'outline', client: 'secondary' };
+const LANGUAGE_LABEL_KEY = { es: 'usersPage.languageSpanish', en: 'usersPage.languageEnglish' };
 
 const initials = (name) =>
   (name || '?').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -35,6 +37,9 @@ const initials = (name) =>
 const shortGuid = (guid) => (guid ? `${guid.slice(0, 8)}…` : null);
 
 // ─── Esquemas de validación ───────────────────────────────────────────────────
+// Los mensajes de zod se resuelven una sola vez al montar el módulo (no
+// dependen del idioma en curso) — quedan en español, igual que el resto de
+// mensajes de validación de formularios "internos" de administración.
 
 const guidOrEmpty = z
   .string()
@@ -54,6 +59,7 @@ const createSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
   password:       passwordRules,
   role:           z.enum(['admin', 'support', 'client']),
+  language:       z.enum(['es', 'en']),
   d365ContactId:  guidOrEmpty,
   d365AccountId:  guidOrEmpty,
 });
@@ -61,6 +67,7 @@ const createSchema = z.object({
 const editSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
   role:           z.enum(['admin', 'support', 'client']),
+  language:       z.enum(['es', 'en']),
   isActive:       z.boolean(),
   d365ContactId:  guidOrEmpty,
   d365AccountId:  guidOrEmpty,
@@ -70,6 +77,7 @@ const editSchema = z.object({
 // ─── Modal de creación / edición ──────────────────────────────────────────────
 
 const UserFormModal = ({ user, open, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const isEdit   = !!user;
   const schema   = isEdit ? editSchema : createSchema;
 
@@ -80,12 +88,13 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
         ? {
             fullName:      user.fullName || '',
             role:          user.role || 'client',
+            language:      user.language || 'es',
             isActive:      user.isActive ?? true,
             d365ContactId: user.d365ContactId || '',
             d365AccountId: user.d365AccountId || '',
             password:      '',
           }
-        : { email: '', fullName: '', password: '', role: 'client', d365ContactId: '', d365AccountId: '' },
+        : { email: '', fullName: '', password: '', role: 'client', language: 'es', d365ContactId: '', d365AccountId: '' },
     });
 
   // Sincronizar defaults cuando cambia el usuario seleccionado
@@ -96,12 +105,13 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
           ? {
               fullName:      user.fullName || '',
               role:          user.role || 'client',
+              language:      user.language || 'es',
               isActive:      user.isActive ?? true,
               d365ContactId: user.d365ContactId || '',
               d365AccountId: user.d365AccountId || '',
               password:      '',
             }
-          : { email: '', fullName: '', password: '', role: 'client', d365ContactId: '', d365AccountId: '' }
+          : { email: '', fullName: '', password: '', role: 'client', language: 'es', d365ContactId: '', d365AccountId: '' }
       );
     }
   }, [open, user]);
@@ -118,15 +128,15 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 
       if (isEdit) {
         await updateUser(user.id, payload);
-        toast.success('Usuario actualizado correctamente');
+        toast.success(t('usersPage.updatedToast'));
       } else {
         await createUser(payload);
-        toast.success('Usuario creado correctamente');
+        toast.success(t('usersPage.createdToast'));
       }
       onSuccess();
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al guardar el usuario');
+      toast.error(err.response?.data?.error || t('usersPage.saveError'));
     }
   };
 
@@ -134,14 +144,14 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? `Editar: ${user.fullName}` : 'Nuevo Usuario'}</DialogTitle>
+          <DialogTitle>{isEdit ? t('usersPage.editTitle', { name: user.fullName }) : t('usersPage.newUserTitle')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
           {/* Email (solo en creación) */}
           {!isEdit && (
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">{t('usersPage.emailLabel')}</Label>
               <Input id="email" type="email" placeholder="usuario@empresa.com" {...register('email')} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
@@ -149,14 +159,14 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 
           {/* Nombre completo */}
           <div className="space-y-1.5">
-            <Label htmlFor="fullName">Nombre completo *</Label>
-            <Input id="fullName" placeholder="Nombre Apellido" {...register('fullName')} />
+            <Label htmlFor="fullName">{t('usersPage.fullNameLabel')}</Label>
+            <Input id="fullName" placeholder={t('usersPage.fullNamePlaceholder')} {...register('fullName')} />
             {errors.fullName && <p className="text-xs text-destructive">{errors.fullName.message}</p>}
           </div>
 
           {/* Rol */}
           <div className="space-y-1.5">
-            <Label>Rol *</Label>
+            <Label>{t('usersPage.roleLabel')}</Label>
             <Select
               defaultValue={isEdit ? user.role : 'client'}
               onValueChange={(v) => setValue('role', v)}
@@ -165,12 +175,30 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="client">Cliente</SelectItem>
-                <SelectItem value="support">Soporte</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="client">{t('usersPage.roleClient')}</SelectItem>
+                <SelectItem value="support">{t('usersPage.roleSupport')}</SelectItem>
+                <SelectItem value="admin">{t('usersPage.roleAdmin')}</SelectItem>
               </SelectContent>
             </Select>
             {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+          </div>
+
+          {/* Idioma */}
+          <div className="space-y-1.5">
+            <Label>{t('usersPage.languageLabel')}</Label>
+            <Select
+              defaultValue={isEdit ? (user.language || 'es') : 'es'}
+              onValueChange={(v) => setValue('language', v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="es">{t('usersPage.languageSpanish')}</SelectItem>
+                <SelectItem value="en">{t('usersPage.languageEnglish')}</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.language && <p className="text-xs text-destructive">{errors.language.message}</p>}
           </div>
 
           {/* Estado activo (solo en edición) */}
@@ -182,7 +210,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
                 onCheckedChange={(v) => setValue('isActive', v)}
               />
               <Label htmlFor="isActive" className="cursor-pointer">
-                {isActive ? 'Usuario activo' : 'Usuario inactivo'}
+                {isActive ? t('usersPage.userActive') : t('usersPage.userInactive')}
               </Label>
             </div>
           )}
@@ -191,14 +219,14 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
           <div className="pt-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Link className="h-3 w-3" />
-              Vinculación Dynamics 365
+              {t('usersPage.d365Linking')}
             </p>
 
             <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
               <div className="space-y-1.5">
                 <Label className="text-sm">
-                  Contacto
-                  <span className="text-muted-foreground font-normal ml-1">— persona responsable del ticket</span>
+                  {t('table.contact')}
+                  <span className="text-muted-foreground font-normal ml-1">{t('usersPage.contactHint')}</span>
                 </Label>
                 <D365Combobox
                   entityType="contact"
@@ -212,8 +240,8 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 
               <div className="space-y-1.5">
                 <Label className="text-sm">
-                  Empresa / Cuenta
-                  <span className="text-muted-foreground font-normal ml-1">(opcional)</span>
+                  {t('usersPage.companyAccount')}
+                  <span className="text-muted-foreground font-normal ml-1">{t('usersPage.optional')}</span>
                 </Label>
                 <D365Combobox
                   entityType="account"
@@ -230,9 +258,9 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
           {/* Contraseña */}
           <div className="space-y-1.5">
             <Label htmlFor="password">
-              {isEdit ? 'Nueva contraseña' : 'Contraseña *'}
+              {isEdit ? t('usersPage.newPassword') : t('usersPage.passwordRequired')}
               {isEdit && (
-                <span className="text-muted-foreground font-normal ml-1">(dejar vacío para no cambiar)</span>
+                <span className="text-muted-foreground font-normal ml-1">{t('usersPage.passwordHint')}</span>
               )}
             </Label>
             <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
@@ -241,10 +269,10 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear usuario'}
+              {isSubmitting ? t('usersPage.saving') : isEdit ? t('usersPage.saveChanges') : t('usersPage.createUser')}
             </Button>
           </DialogFooter>
         </form>
@@ -256,6 +284,8 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 // ─── Página de usuarios ───────────────────────────────────────────────────────
 
 const UsersPage = () => {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const [users, setUsers]       = useState([]);
   const [nextLink, setNextLink] = useState(null);
   const [loading, setLoading]   = useState(true);
@@ -280,11 +310,11 @@ const UsersPage = () => {
       setUsers((prev) => (link ? [...prev, ...filtered] : filtered));
       setNextLink(result.nextLink);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al cargar usuarios');
+      setError(err.response?.data?.error || t('usersPage.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [search, roleFilter]);
+  }, [search, roleFilter, t]);
 
   useEffect(() => {
     setUsers([]);
@@ -306,11 +336,11 @@ const UsersPage = () => {
     if (!deleting) return;
     try {
       await deleteUser(deleting.id);
-      toast.success(`Usuario "${deleting.fullName}" eliminado`);
+      toast.success(t('usersPage.deletedToast', { name: deleting.fullName }));
       setDeleting(null);
       fetchUsers();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Error al eliminar el usuario');
+      toast.error(err.response?.data?.error || t('usersPage.deleteError'));
     }
   };
 
@@ -319,14 +349,14 @@ const UsersPage = () => {
       {/* Cabecera */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Gestión de Usuarios</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('usersPage.title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Crea y vincula usuarios del portal a contactos de Dynamics 365
+            {t('usersPage.subtitle')}
           </p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          Nuevo Usuario
+          {t('usersPage.newUser')}
         </Button>
       </div>
 
@@ -335,25 +365,25 @@ const UsersPage = () => {
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <Input
             name="search"
-            placeholder="Buscar por nombre o email…"
+            placeholder={t('usersPage.searchPlaceholder')}
             defaultValue={search}
             className="w-64"
           />
           <Button type="submit" variant="secondary" size="sm">
             <Search className="mr-2 h-4 w-4" />
-            Buscar
+            {t('common.search')}
           </Button>
         </form>
 
         <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className="w-36">
-            <SelectValue placeholder="Todos los roles" />
+            <SelectValue placeholder={t('usersPage.allRoles')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="client">Clientes</SelectItem>
-            <SelectItem value="support">Soporte</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="client">{t('usersPage.roleClientPlural')}</SelectItem>
+            <SelectItem value="support">{t('usersPage.roleSupport')}</SelectItem>
+            <SelectItem value="admin">{t('usersPage.roleAdmin')}</SelectItem>
+            <SelectItem value="">{t('usersPage.allRoles')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -369,8 +399,8 @@ const UsersPage = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-medium text-muted-foreground">
             {loading && users.length === 0
-              ? 'Cargando…'
-              : `${users.length}${nextLink ? '+' : ''} usuario${users.length !== 1 ? 's' : ''}`}
+              ? t('common.loadingEllipsis')
+              : t('usersPage.userCount', { count: users.length, plus: nextLink ? '+' : '' })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -382,14 +412,14 @@ const UsersPage = () => {
             </div>
           ) : users.length === 0 ? (
             <div className="py-14 text-center text-sm text-muted-foreground">
-              No se encontraron usuarios.
+              {t('usersPage.noUsersFound')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40">
                   <tr>
-                    {['Usuario', 'Rol', 'Estado', 'Contacto (D365)', 'Cuenta (D365)', 'Último acceso', ''].map((h) => (
+                    {[t('usersPage.colUser'), t('usersPage.colRole'), t('table.status'), t('usersPage.colContact'), t('usersPage.colAccount'), t('usersPage.colLastAccess'), ''].map((h) => (
                       <th key={h} className="text-left px-6 py-3 font-medium text-muted-foreground whitespace-nowrap">
                         {h}
                       </th>
@@ -416,18 +446,18 @@ const UsersPage = () => {
 
                       {/* Rol */}
                       <td className="px-6 py-3">
-                        <Badge variant={ROLE_VARIANT[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+                        <Badge variant={ROLE_VARIANT[u.role]}>{t(ROLE_LABEL_KEY[u.role])}</Badge>
                       </td>
 
                       {/* Estado */}
                       <td className="px-6 py-3">
                         {u.isActive ? (
                           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                            <UserCheck className="h-3.5 w-3.5" /> Activo
+                            <UserCheck className="h-3.5 w-3.5" /> {t('status.active')}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                            <UserX className="h-3.5 w-3.5" /> Inactivo
+                            <UserX className="h-3.5 w-3.5" /> {t('usersPage.userInactive')}
                           </span>
                         )}
                       </td>
@@ -439,7 +469,7 @@ const UsersPage = () => {
                             {u.contactName || shortGuid(u.d365ContactId)}
                           </p>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">Sin vincular</span>
+                          <span className="text-xs text-muted-foreground italic">{t('usersPage.notLinked')}</span>
                         )}
                       </td>
 
@@ -450,15 +480,15 @@ const UsersPage = () => {
                             {u.accountName || shortGuid(u.d365AccountId)}
                           </p>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">Sin vincular</span>
+                          <span className="text-xs text-muted-foreground italic">{t('usersPage.notLinked')}</span>
                         )}
                       </td>
 
                       {/* Último acceso */}
                       <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
                         {u.lastLoginAt
-                          ? format(new Date(u.lastLoginAt), 'dd MMM yyyy HH:mm', { locale: es })
-                          : <span className="italic text-xs">Nunca</span>}
+                          ? format(new Date(u.lastLoginAt), 'dd MMM yyyy HH:mm', { locale: dateLocale })
+                          : <span className="italic text-xs">{t('usersPage.never')}</span>}
                       </td>
 
                       {/* Acciones */}
@@ -471,7 +501,7 @@ const UsersPage = () => {
                             className="h-8 w-8 p-0"
                           >
                             <Pencil className="h-3.5 w-3.5" />
-                            <span className="sr-only">Editar</span>
+                            <span className="sr-only">{t('usersPage.edit')}</span>
                           </Button>
                           <Button
                             variant="ghost"
@@ -480,7 +510,7 @@ const UsersPage = () => {
                             className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            <span className="sr-only">Eliminar</span>
+                            <span className="sr-only">{t('common.delete')}</span>
                           </Button>
                         </div>
                       </td>
@@ -494,7 +524,7 @@ const UsersPage = () => {
           {nextLink && !loading && (
             <div className="p-4 text-center border-t">
               <Button variant="outline" size="sm" onClick={() => fetchUsers(nextLink)}>
-                Cargar más
+                {t('usersPage.loadMore')}
               </Button>
             </div>
           )}
@@ -512,19 +542,19 @@ const UsersPage = () => {
       <Dialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Eliminar usuario</DialogTitle>
+            <DialogTitle>{t('usersPage.deleteTitle')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            ¿Estás seguro de que deseas eliminar a{' '}
+            {t('usersPage.deleteConfirmPrefix')}{' '}
             <span className="font-semibold text-foreground">{deleting?.fullName}</span>?
-            Esta acción no se puede deshacer.
+            {' '}{t('usersPage.deleteConfirmSuffix')}
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleting(null)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
-              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+              <Trash2 className="mr-2 h-4 w-4" /> {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

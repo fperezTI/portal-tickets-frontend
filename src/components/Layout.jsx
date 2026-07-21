@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -10,32 +11,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck, BarChart3, Gauge,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck, BarChart3, Gauge, KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
 import { resolveAccount, resolveContact } from '../api/d365';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 const NAV_ITEMS = [
-  { to: '/dashboard',    icon: LayoutDashboard, label: 'Inicio',          roles: ['admin', 'support', 'client'], end: true },
-  { to: '/cases/new',    icon: Plus,            label: 'Nuevo Ticket',    roles: ['client'], end: true },
-  { to: '/cases/mine',   icon: ListChecks,      label: 'Mis Tickets',     roles: ['client'], end: true },
-  { to: '/cases/active', icon: CircleDot,       label: 'Tickets Activos', roles: ['admin', 'support', 'client'] },
-  { to: '/cases',        icon: Ticket,          label: 'Tickets',         roles: ['admin', 'support', 'client'], end: true },
-  { to: '/policies/mine', icon: ShieldCheck,    label: 'Mis Pólizas',     roles: ['client'], end: true },
-  { to: '/policies/mine', icon: ShieldCheck,    label: 'Pólizas',         roles: ['admin', 'support'], end: true },
-  { to: '/consumption',  icon: BarChart3,       label: 'Consumo',        roles: ['admin', 'support', 'client'], end: true },
+  { to: '/dashboard',    icon: LayoutDashboard, labelKey: 'nav.home',          roles: ['admin', 'support', 'client'], end: true },
+  { to: '/cases/new',    icon: Plus,            labelKey: 'nav.newTicket',     roles: ['client'], end: true },
+  { to: '/cases/mine',   icon: ListChecks,      labelKey: 'nav.myTickets',     roles: ['client'], end: true },
+  { to: '/cases/active', icon: CircleDot,       labelKey: 'nav.activeTickets', roles: ['admin', 'support', 'client'] },
+  { to: '/cases',        icon: Ticket,          labelKey: 'nav.tickets',       roles: ['admin', 'support', 'client'], end: true },
+  { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.myPolicies',    roles: ['client'], end: true },
+  { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.policies',      roles: ['admin', 'support'], end: true },
+  { to: '/consumption',  icon: BarChart3,       labelKey: 'nav.consumption',   roles: ['admin', 'support', 'client'], end: true },
 ];
 
 // Sección aparte, en la parte inferior de la barra (arriba del widget de
 // tickets activos), separada del menú principal.
 const BOTTOM_NAV_ITEMS = [
-  { to: '/admin/tasks',               icon: ClipboardList, label: 'Tareas',           roles: ['admin'], end: true },
-  { to: '/admin/general-consumption', icon: Gauge,          label: 'Consumo General', roles: ['admin'], end: true },
-  { to: '/admin/users',               icon: Users,          label: 'Usuarios',         roles: ['admin'], end: true },
+  { to: '/admin/tasks',               icon: ClipboardList, labelKey: 'nav.tasks',              roles: ['admin'], end: true },
+  { to: '/admin/general-consumption', icon: Gauge,          labelKey: 'nav.generalConsumption', roles: ['admin'], end: true },
+  { to: '/admin/users',               icon: Users,          labelKey: 'nav.users',              roles: ['admin'], end: true },
 ];
 
 const Layout = () => {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -44,6 +47,7 @@ const Layout = () => {
   );
   const [activeCount, setActiveCount] = useState(null);
   const [customerLabel, setCustomerLabel] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   useEffect(() => {
     getStats().then((s) => setActiveCount(s.activeCases)).catch(() => {});
@@ -95,7 +99,7 @@ const Layout = () => {
             /* Colapsado: solo isotipo, click expande */
             <button
               onClick={toggle}
-              title="Expandir menú"
+              title={t('nav.expandMenu')}
               className="w-full h-14 flex items-center justify-center transition-colors duration-150 hover:bg-white/[0.07]"
             >
               <img src="/isotipo.png" alt="GS" className="h-9 w-9 object-contain" />
@@ -105,11 +109,11 @@ const Layout = () => {
             <div className="flex items-center w-full pl-3 pr-2 gap-2.5">
               <img src="/isotipo.png" alt="GS" className="h-9 w-9 object-contain shrink-0" />
               <span className="flex-1 text-sm font-semibold text-white whitespace-nowrap tracking-wide">
-                Portal de Tickets
+                {t('common.portalTitle')}
               </span>
               <button
                 onClick={toggle}
-                title="Minimizar menú"
+                title={t('nav.collapseMenu')}
                 className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-150 text-white/35 hover:text-white hover:bg-white/[0.07]"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
@@ -130,15 +134,15 @@ const Layout = () => {
               transition: 'opacity 200ms ease, max-height 200ms ease, padding 200ms ease',
             }}
           >
-            Menú
+            {t('nav.menu')}
           </p>
 
-          {visibleNav.map(({ to, icon: Icon, label, end }) => (
+          {visibleNav.map(({ to, icon: Icon, labelKey, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
-              title={collapsed ? label : undefined}
+              title={collapsed ? t(labelKey) : undefined}
               className={({ isActive }) =>
                 cn(
                   'flex items-center rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap overflow-hidden',
@@ -155,7 +159,7 @@ const Layout = () => {
                   <Icon className="h-4 w-4 shrink-0" />
                   {!collapsed && (
                     <>
-                      <span>{label}</span>
+                      <span>{t(labelKey)}</span>
                       {isActive && (
                         <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
                       )}
@@ -173,12 +177,12 @@ const Layout = () => {
             className="shrink-0 py-2 px-2 space-y-0.5"
             style={{ borderTop: '1px solid var(--gs-border)' }}
           >
-            {visibleBottomNav.map(({ to, icon: Icon, label, end }) => (
+            {visibleBottomNav.map(({ to, icon: Icon, labelKey, end }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={end}
-                title={collapsed ? label : undefined}
+                title={collapsed ? t(labelKey) : undefined}
                 className={({ isActive }) =>
                   cn(
                     'flex items-center rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap overflow-hidden',
@@ -195,7 +199,7 @@ const Layout = () => {
                     <Icon className="h-4 w-4 shrink-0" />
                     {!collapsed && (
                       <>
-                        <span>{label}</span>
+                        <span>{t(labelKey)}</span>
                         {isActive && (
                           <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
                         )}
@@ -220,7 +224,7 @@ const Layout = () => {
             {collapsed ? (
               <div
                 className="flex flex-col items-center justify-center h-10 gap-0.5"
-                title={`${activeCount} tickets activos`}
+                title={t('common.activeTicketsCount', { count: activeCount })}
               >
                 <span className="text-xs font-bold leading-none" style={{ color: 'var(--gs-cyan)' }}>
                   {activeCount}
@@ -232,7 +236,7 @@ const Layout = () => {
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white leading-tight">{activeCount}</p>
                   <p className="text-[10px] leading-tight whitespace-nowrap" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
-                    tickets activos
+                    {t('nav.activeTicketsLabel')}
                   </p>
                 </div>
               </div>
@@ -294,17 +298,28 @@ const Layout = () => {
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
               <DropdownMenuSeparator />
+              {user?.role === 'client' && (
+                <DropdownMenuItem
+                  onClick={() => setShowChangePassword(true)}
+                  className="cursor-pointer"
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  {t('changePassword.menuItem')}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="text-destructive focus:text-destructive cursor-pointer"
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Cerrar sesión
+                {t('common.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </aside>
+
+      <ChangePasswordDialog open={showChangePassword} onClose={() => setShowChangePassword(false)} />
 
       {/* ── Contenido principal ────────────────────────────────── */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">

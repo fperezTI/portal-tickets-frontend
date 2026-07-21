@@ -10,6 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, Layers } from 'lucide-react';
 
+// El formulario de login se muestra siempre antes de conocer al usuario (y
+// por lo tanto su idioma), así que sus mensajes de validación no pasan por
+// i18n — se ven en español, igual que el resto de esta pantalla.
 const schema = z.object({
   email:    z.string().email('Email inválido'),
   password: z.string().min(1, 'Contraseña requerida'),

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { searchPolicies } from '../api/policies';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,9 @@ import { cn } from '@/lib/utils';
  * label: nombre de la póliza ya seleccionada (evita tener que resolverlo por id)
  * onChange: (policyId: string, policyName: string) => void — se llama con ('', '') al limpiar
  */
-const PolicyCombobox = ({ value, label, onChange, disabled, placeholder = 'Buscar póliza…' }) => {
+const PolicyCombobox = ({ value, label, onChange, disabled, placeholder }) => {
+  const { t } = useTranslation();
+  const effectivePlaceholder = placeholder || t('policyCombobox.defaultPlaceholder');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState([]);
@@ -71,7 +74,7 @@ const PolicyCombobox = ({ value, label, onChange, disabled, placeholder = 'Busca
           className="w-full justify-between font-normal h-9"
         >
           <span className={cn('truncate text-sm', !displayText && 'text-muted-foreground')}>
-            {displayText || placeholder}
+            {displayText || effectivePlaceholder}
           </span>
           <span className="flex items-center gap-1 shrink-0 ml-2">
             {value && !disabled && (
@@ -87,18 +90,18 @@ const PolicyCombobox = ({ value, label, onChange, disabled, placeholder = 'Busca
 
       <PopoverContent className="p-0 w-72" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder={placeholder} value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={effectivePlaceholder} value={query} onValueChange={setQuery} />
           <CommandList>
             {loading && (
               <div className="flex items-center justify-center py-6 gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Buscando…
+                <Loader2 className="h-4 w-4 animate-spin" /> {t('combobox.searching')}
               </div>
             )}
             {!loading && !query && (
-              <CommandEmpty>Escribe para buscar una póliza</CommandEmpty>
+              <CommandEmpty>{t('policyCombobox.typeToSearch')}</CommandEmpty>
             )}
             {!loading && query && options.length === 0 && (
-              <CommandEmpty>Sin resultados para "{query}"</CommandEmpty>
+              <CommandEmpty>{t('combobox.noResultsFor', { query })}</CommandEmpty>
             )}
             {!loading && options.length > 0 && (
               <CommandGroup>
