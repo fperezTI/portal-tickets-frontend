@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck, BarChart3,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck, BarChart3, Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
@@ -30,8 +30,9 @@ const NAV_ITEMS = [
 // Sección aparte, en la parte inferior de la barra (arriba del widget de
 // tickets activos), separada del menú principal.
 const BOTTOM_NAV_ITEMS = [
-  { to: '/admin/tasks', icon: ClipboardList, label: 'Tareas',   roles: ['admin'], end: true },
-  { to: '/admin/users', icon: Users,         label: 'Usuarios', roles: ['admin'], end: true },
+  { to: '/admin/tasks',               icon: ClipboardList, label: 'Tareas',           roles: ['admin'], end: true },
+  { to: '/admin/general-consumption', icon: Gauge,          label: 'Consumo General', roles: ['admin'], end: true },
+  { to: '/admin/users',               icon: Users,          label: 'Usuarios',         roles: ['admin'], end: true },
 ];
 
 const Layout = () => {

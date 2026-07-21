@@ -9,3 +9,4 @@ export const updateCasePolicy = (id, policyId) => client.patch(`/cases/${id}/pol
 export const getStats      = ()       => client.get('/stats').then((r) => r.data);
 export const getDashboard  = ()       => client.get('/dashboard').then((r) => r.data);
 export const getStages     = ()       => client.get('/stages').then((r) => r.data);
+export const getGeneralConsumption = (params) => client.get('/general-consumption', { params }).then((r) => r.data);

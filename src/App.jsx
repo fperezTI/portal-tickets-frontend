@@ -16,6 +16,7 @@ import PolicyDetailPage from './pages/PolicyDetailPage';
 import ConsumptionPage from './pages/ConsumptionPage';
 import UsersPage from './pages/admin/UsersPage';
 import TasksPage from './pages/admin/TasksPage';
+import GeneralConsumptionPage from './pages/admin/GeneralConsumptionPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersPage />} />
                 <Route path="/admin/tasks" element={<TasksPage />} />
+                <Route path="/admin/general-consumption" element={<GeneralConsumptionPage />} />
               </Route>
             </Route>
           </Route>
