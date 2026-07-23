@@ -1,22 +1,25 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { useDateLocale } from '../hooks/useDateLocale';
-import { listMyPolicies, listPolicyCustomers } from '../api/policies';
+import { listMyPolicies, listPolicyCustomers, getPolicyHoursByMonth } from '../api/policies';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, ShieldOff, Users } from 'lucide-react';
+import { RefreshCw, ShieldOff, Users, CalendarRange } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import { fmtHours } from '@/lib/utils';
 
 const STAFF_ROLES = ['admin', 'support'];
+const MONTH_SHORT_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
 // Dataverse expone estos campos como "solo fecha"; reconstruir con `new Date(iso)`
 // puede recorrer un día por la zona horaria del navegador. Se usa el valor ya
@@ -118,12 +121,121 @@ const PoliciesTable = ({ policies, onRowClick }) => {
   );
 };
 
+// ─── Horas de póliza por cliente y mes (solo admin) ───────────────────────────
+const PolicyHoursByMonthPanel = () => {
+  const { t } = useTranslation();
+  const [year, setYear] = useState(CURRENT_YEAR);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const monthLabels = useMemo(() => MONTH_SHORT_KEYS.map((k) => t(`months.short.${k}`)), [t]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    getPolicyHoursByMonth(year)
+      .then((res) => { if (!cancelled) setRows(res?.rows || []); })
+      .catch((err) => { if (!cancelled) setError(err.response?.data?.error || t('policies.hoursByMonthError')); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [year, t]);
+
+  const grandTotals = useMemo(() => {
+    const totals = Array(12).fill(0);
+    rows.forEach((r) => r.months.forEach((h, i) => { totals[i] = Math.round((totals[i] + h) * 100) / 100; }));
+    const total = Math.round(totals.reduce((s, h) => s + h, 0) * 100) / 100;
+    return { totals, total };
+  }, [rows]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarRange className="h-4 w-4 text-muted-foreground" />
+            {t('policies.hoursByMonthTitle')}
+          </CardTitle>
+          <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))}>
+            <SelectTrigger className="w-28 h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {YEAR_OPTIONS.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <p className="text-sm text-muted-foreground mt-0.5">{t('policies.hoursByMonthSubtitle')}</p>
+      </CardHeader>
+      <CardContent className="p-0">
+        {error && (
+          <div className="px-6 pb-4">
+            <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+          </div>
+        )}
+
+        {loading && (
+          <div className="p-6 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+          </div>
+        )}
+
+        {!loading && !error && rows.length === 0 && (
+          <div className="py-14 text-center text-sm text-muted-foreground">
+            {t('policies.hoursByMonthEmpty', { year })}
+          </div>
+        )}
+
+        {!loading && rows.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/60 border-y">
+                <tr>
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap sticky left-0 bg-muted/60">{t('policies.hoursByMonthClient')}</th>
+                  {monthLabels.map((m) => (
+                    <th key={m} className="text-right px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{m}</th>
+                  ))}
+                  <th className="text-right px-4 py-2.5 font-bold text-foreground whitespace-nowrap">{t('consumption.total')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {rows.map((r) => (
+                  <tr key={r.customerId} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 font-medium whitespace-nowrap sticky left-0 bg-background">{r.customerName || '—'}</td>
+                    {r.months.map((h, i) => (
+                      <td key={i} className="px-3 py-2.5 text-right whitespace-nowrap text-muted-foreground">{h ? fmtHours(h) : '—'}</td>
+                    ))}
+                    <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{fmtHours(r.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 font-bold">
+                  <td className="px-4 py-2.5 whitespace-nowrap sticky left-0 bg-background">{t('consumption.total')}</td>
+                  {grandTotals.totals.map((h, i) => (
+                    <td key={i} className="px-3 py-2.5 text-right whitespace-nowrap">{fmtHours(h)}</td>
+                  ))}
+                  <td className="px-4 py-2.5 text-right whitespace-nowrap">{fmtHours(grandTotals.total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // ─── Página ────────────────────────────────────────────────────────────────────
 const MyPoliciesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
+  const isAdmin = user?.role === 'admin';
 
   // El cliente seleccionado vive en la URL (no en useState) para que, al
   // volver desde el detalle de una póliza, se conserve el mismo cliente y
@@ -243,6 +355,8 @@ const MyPoliciesPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {isAdmin && <PolicyHoursByMonthPanel />}
     </div>
   );
 };

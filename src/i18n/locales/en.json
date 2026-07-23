@@ -212,7 +212,12 @@
     "forYourAccount": "Policies linked to your account",
     "noCustomerPolicies": "This customer has no registered policies.",
     "noOwnPolicies": "You have no registered policies.",
-    "loadMore": "Load more policies"
+    "loadMore": "Load more policies",
+    "hoursByMonthTitle": "Policy hours by customer and month",
+    "hoursByMonthSubtitle": "Hours from each customer's support records, grouped by month for the selected year.",
+    "hoursByMonthClient": "Customer",
+    "hoursByMonthError": "Error loading hours by month",
+    "hoursByMonthEmpty": "No support records dated in {{year}}."
   },
   "policyDetail": {
     "detailFull": "This detail already reached its available hours and was marked Inactive.",
@@ -381,19 +386,32 @@
   "generalConsumption": {
     "loadError": "Error loading general consumption",
     "subtitle": "Hours worked (task Duration) and tickets created/closed, per month — all customers",
+    "hoursExecutiveTitle": "Executive hours summary",
     "hoursWorkedYear": "Hours worked {{year}}",
+    "hoursBillableYear": "Billable hours {{year}}",
+    "hoursWarrantyYear": "Warranty hours {{year}}",
+    "hoursReworkYear": "Rework {{year}}",
     "ticketsCreatedYear": "Tickets created {{year}}",
     "ticketsClosedYear": "Tickets closed {{year}}",
     "forecastTitle": "Next 3 months forecast (staffing forecast)",
-    "forecastSubtitle": "Linear trend over the last {{count}} already-closed months — use it as a reference for expected workload to size the team.",
+    "forecastSubtitle": "Linear trend over the last {{count}} already-closed months.",
     "estimated": "Estimated",
+    "hoursPerConsultant": "Hours/consultant",
+    "consultantsLabel": "Consultants",
+    "consultantsLabelAvg": "Consultants (monthly average)",
     "totalProjected": "Total projected",
     "vsTrendAverage": "vs. trend average",
     "noData": "No consumption data to show.",
     "month": "Month",
     "hoursWorked": "Hours worked",
+    "hoursBillable": "Billable hours",
     "ticketsCreated": "Tickets created",
-    "ticketsClosed": "Tickets closed"
+    "ticketsClosed": "Tickets closed",
+    "byCustomerTitle": "Breakdown by client",
+    "byCustomerClient": "Client",
+    "byCustomerError": "Error loading breakdown by client",
+    "byCustomerEmpty": "No client data for this month.",
+    "clickToExpand": "Click a month to see the breakdown by client"
   },
   "changePassword": {
     "menuItem": "Change password",

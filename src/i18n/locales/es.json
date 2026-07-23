@@ -212,7 +212,12 @@
     "forYourAccount": "Pólizas asociadas a tu cuenta",
     "noCustomerPolicies": "Este cliente no tiene pólizas registradas.",
     "noOwnPolicies": "No tienes pólizas registradas.",
-    "loadMore": "Cargar más pólizas"
+    "loadMore": "Cargar más pólizas",
+    "hoursByMonthTitle": "Horas de póliza por cliente y mes",
+    "hoursByMonthSubtitle": "Horas de los registros de soporte de cada cliente, agrupadas por mes del año seleccionado.",
+    "hoursByMonthClient": "Cliente",
+    "hoursByMonthError": "Error al cargar las horas por mes",
+    "hoursByMonthEmpty": "No hay registros de soporte con fecha en {{year}}."
   },
   "policyDetail": {
     "detailFull": "Este detalle ya completó sus horas disponibles y quedó marcado como Inactivo.",
@@ -381,19 +386,32 @@
   "generalConsumption": {
     "loadError": "Error al cargar el consumo general",
     "subtitle": "Horas trabajadas (Duration de tareas) y tickets creados/cerrados, por mes — todos los clientes",
+    "hoursExecutiveTitle": "Resumen ejecutivo de horas",
     "hoursWorkedYear": "Horas trabajadas {{year}}",
+    "hoursBillableYear": "Horas facturadas {{year}}",
+    "hoursWarrantyYear": "Horas de garantía {{year}}",
+    "hoursReworkYear": "Retrabajos {{year}}",
     "ticketsCreatedYear": "Tickets creados {{year}}",
     "ticketsClosedYear": "Tickets cerrados {{year}}",
     "forecastTitle": "Proyección próximos 3 meses (forecast de personal)",
-    "forecastSubtitle": "Tendencia lineal sobre los últimos {{count}} meses ya cerrados — úsala como referencia de carga de trabajo esperada para dimensionar al equipo.",
+    "forecastSubtitle": "Tendencia lineal sobre los últimos {{count}} meses ya cerrados.",
     "estimated": "Estimado",
+    "hoursPerConsultant": "Horas/consultor",
+    "consultantsLabel": "Consultores",
+    "consultantsLabelAvg": "Consultores (promedio mensual)",
     "totalProjected": "Total proyectado",
     "vsTrendAverage": "vs. promedio tendencia",
     "noData": "No hay datos de consumo para mostrar.",
     "month": "Mes",
     "hoursWorked": "Horas trabajadas",
+    "hoursBillable": "Horas facturables",
     "ticketsCreated": "Tickets creados",
-    "ticketsClosed": "Tickets cerrados"
+    "ticketsClosed": "Tickets cerrados",
+    "byCustomerTitle": "Desglose por cliente",
+    "byCustomerClient": "Cliente",
+    "byCustomerError": "Error al cargar el desglose por cliente",
+    "byCustomerEmpty": "No hay datos por cliente para este mes.",
+    "clickToExpand": "Haz clic en un mes para ver el desglose por cliente"
   },
   "changePassword": {
     "menuItem": "Cambiar contraseña",
