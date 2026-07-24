@@ -217,7 +217,8 @@
     "hoursByMonthSubtitle": "Hours from each customer's support records, grouped by month for the selected year.",
     "hoursByMonthClient": "Customer",
     "hoursByMonthError": "Error loading hours by month",
-    "hoursByMonthEmpty": "No support records dated in {{year}}."
+    "hoursByMonthEmpty": "No support records dated in {{year}}.",
+    "hoursByMonthNoType": "No type"
   },
   "policyDetail": {
     "detailFull": "This detail already reached its available hours and was marked Inactive.",
@@ -329,7 +330,7 @@
     "d365Linking": "Dynamics 365 Linking",
     "contactHint": "— person responsible for the ticket",
     "companyAccount": "Company / Account",
-    "optional": "(optional)",
+    "selectCompanyFirst": "Pick a company first to search its contact.",
     "newPassword": "New password",
     "passwordRequired": "Password *",
     "passwordHint": "(leave blank to keep unchanged)",

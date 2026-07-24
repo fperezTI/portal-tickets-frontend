@@ -134,6 +134,12 @@ const ConsumptionPage = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Los grupos por etapa arrancan contraídos — se expanden solo al hacer
+  // clic. Se recalcula cada vez que llegan datos nuevos (cliente/año).
+  useEffect(() => {
+    setCollapsedGroups(new Set(rows.map((r) => r.stage)));
+  }, [rows]);
+
   // Horas disponibles de las pólizas ACTIVAS del cliente — independiente del
   // filtro de año/mes, refleja el estado actual de sus pólizas.
   const [policies, setPolicies] = useState([]);

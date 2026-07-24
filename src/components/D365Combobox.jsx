@@ -19,8 +19,10 @@ import { cn } from '@/lib/utils';
  * entityType: 'contact' | 'account'
  * value: GUID seleccionado (string) | ''
  * onChange: (guid: string) => void
+ * filterAccountId: (solo entityType='contact') acota la búsqueda a los
+ * contactos de esa empresa — para elegir el contacto después de la empresa.
  */
-const D365Combobox = ({ entityType, value, onChange, disabled }) => {
+const D365Combobox = ({ entityType, value, onChange, disabled, filterAccountId }) => {
   const { t } = useTranslation();
   const [open, setOpen]               = useState(false);
   const [query, setQuery]             = useState('');
@@ -48,8 +50,10 @@ const D365Combobox = ({ entityType, value, onChange, disabled }) => {
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const search = isContact ? searchContacts : searchAccounts;
-        setOptions(await search(query));
+        const results = isContact
+          ? await searchContacts(query, filterAccountId)
+          : await searchAccounts(query);
+        setOptions(results);
       } catch {
         setOptions([]);
       } finally {
@@ -58,7 +62,7 @@ const D365Combobox = ({ entityType, value, onChange, disabled }) => {
     }, 350);
 
     return () => clearTimeout(debounceRef.current);
-  }, [query, entityType]);
+  }, [query, entityType, filterAccountId]);
 
   const handleSelect = (opt) => {
     onChange(opt.id);

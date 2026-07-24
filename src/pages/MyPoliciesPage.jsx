@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Fragment, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
@@ -12,9 +12,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, ShieldOff, Users, CalendarRange } from 'lucide-react';
+import { RefreshCw, ShieldOff, Users, CalendarRange, ChevronDown, ChevronRight } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import { fmtHours } from '@/lib/utils';
+
+// Orden preferido de los grupos de Tipo de Soporte en el panel de horas por
+// cliente y mes; cualquier tipo no listado (o sin tipo asignado) cae al final.
+const SUPPORT_TYPE_ORDER = ['Póliza', 'Consumo', 'Cierre', 'Ajuste', 'Bolsa'];
+const supportTypeRank = (name) => {
+  const idx = SUPPORT_TYPE_ORDER.indexOf(name);
+  return idx === -1 ? SUPPORT_TYPE_ORDER.length : idx;
+};
 
 const STAFF_ROLES = ['admin', 'support'];
 const MONTH_SHORT_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -128,6 +136,7 @@ const PolicyHoursByMonthPanel = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
 
   const monthLabels = useMemo(() => MONTH_SHORT_KEYS.map((k) => t(`months.short.${k}`)), [t]);
 
@@ -142,12 +151,54 @@ const PolicyHoursByMonthPanel = () => {
     return () => { cancelled = true; };
   }, [year, t]);
 
+  // Los grupos por Tipo de Soporte arrancan contraídos — se expanden solo al
+  // hacer clic. Se recalcula cada vez que llegan datos nuevos (año).
+  useEffect(() => {
+    setCollapsedGroups(new Set(rows.map((r) => r.supportType || '__none__')));
+  }, [rows]);
+
   const grandTotals = useMemo(() => {
     const totals = Array(12).fill(0);
     rows.forEach((r) => r.months.forEach((h, i) => { totals[i] = Math.round((totals[i] + h) * 100) / 100; }));
     const total = Math.round(totals.reduce((s, h) => s + h, 0) * 100) / 100;
     return { totals, total };
   }, [rows]);
+
+  // Un nivel de agrupación por Tipo de Soporte (cre2f_SupportType de la
+  // cuenta) arriba de los clientes — mismo patrón visual que las etapas en
+  // Consumo. Clientes sin tipo asignado (o que son contacto, no cuenta) caen
+  // en un grupo "Sin tipo" al final.
+  const groups = useMemo(() => {
+    const map = new Map();
+    rows.forEach((r) => {
+      const key = r.supportType || '__none__';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(r);
+    });
+    return [...map.entries()]
+      .map(([key, items]) => {
+        const monthTotals = Array(12).fill(0);
+        items.forEach((r) => r.months.forEach((h, i) => { monthTotals[i] = Math.round((monthTotals[i] + h) * 100) / 100; }));
+        return {
+          key,
+          label: key === '__none__' ? t('policies.hoursByMonthNoType') : key,
+          items,
+          monthTotals,
+          total: Math.round(monthTotals.reduce((s, h) => s + h, 0) * 100) / 100,
+        };
+      })
+      .sort((a, b) => {
+        if (a.key === '__none__') return 1;
+        if (b.key === '__none__') return -1;
+        return supportTypeRank(a.key) - supportTypeRank(b.key) || a.label.localeCompare(b.label);
+      });
+  }, [rows, t]);
+
+  const toggleGroup = (key) => setCollapsedGroups((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
 
   return (
     <Card>
@@ -202,15 +253,38 @@ const PolicyHoursByMonthPanel = () => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {rows.map((r) => (
-                  <tr key={r.customerId} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-2.5 font-medium whitespace-nowrap sticky left-0 bg-background">{r.customerName || '—'}</td>
-                    {r.months.map((h, i) => (
-                      <td key={i} className="px-3 py-2.5 text-right whitespace-nowrap text-muted-foreground">{h ? fmtHours(h) : '—'}</td>
-                    ))}
-                    <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{fmtHours(r.total)}</td>
-                  </tr>
-                ))}
+                {groups.map((g) => {
+                  const collapsed = collapsedGroups.has(g.key);
+                  return (
+                    <Fragment key={g.key}>
+                      <tr
+                        className="bg-muted/30 hover:bg-muted/40 cursor-pointer transition-colors"
+                        onClick={() => toggleGroup(g.key)}
+                      >
+                        <td className="px-4 py-2 font-semibold sticky left-0 bg-muted/30 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5">
+                            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            {g.label}
+                            <span className="text-xs font-normal text-muted-foreground">({g.items.length})</span>
+                          </span>
+                        </td>
+                        {g.monthTotals.map((h, i) => (
+                          <td key={i} className="px-3 py-2 text-right font-semibold whitespace-nowrap">{h ? fmtHours(h) : '—'}</td>
+                        ))}
+                        <td className="px-4 py-2 text-right font-bold whitespace-nowrap">{fmtHours(g.total)}</td>
+                      </tr>
+                      {!collapsed && g.items.map((r) => (
+                        <tr key={r.customerId} className="hover:bg-muted/20 transition-colors">
+                          <td className="pl-8 pr-4 py-2.5 whitespace-nowrap sticky left-0 bg-background">{r.customerName || '—'}</td>
+                          {r.months.map((h, i) => (
+                            <td key={i} className="px-3 py-2.5 text-right whitespace-nowrap text-muted-foreground">{h ? fmtHours(h) : '—'}</td>
+                          ))}
+                          <td className="px-4 py-2.5 text-right font-semibold whitespace-nowrap">{fmtHours(r.total)}</td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="border-t-2 font-bold">

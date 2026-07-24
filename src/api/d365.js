@@ -1,7 +1,7 @@
 import client from './client';
 
-export const searchContacts = (search) =>
-  client.get('/d365/contacts', { params: { search } }).then((r) => r.data);
+export const searchContacts = (search, accountId) =>
+  client.get('/d365/contacts', { params: { search, accountId: accountId || undefined } }).then((r) => r.data);
 
 export const searchAccounts = (search) =>
   client.get('/d365/accounts', { params: { search } }).then((r) => r.data);

@@ -125,9 +125,9 @@ const Layout = () => {
         {/* ── Navegación ────────────────────────────── */}
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-hidden">
           <p
-            className="text-[9px] font-semibold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden"
+            className="text-[10px] font-bold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden"
             style={{
-              color: 'oklch(1 0 0 / 0.28)',
+              color: 'var(--gs-cyan)',
               padding: collapsed ? '0' : '0 12px 8px',
               maxHeight: collapsed ? 0 : 28,
               opacity: collapsed ? 0 : 1,

@@ -225,6 +225,26 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
             <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
               <div className="space-y-1.5">
                 <Label className="text-sm">
+                  {t('usersPage.companyAccount')}
+                </Label>
+                <D365Combobox
+                  entityType="account"
+                  value={watch('d365AccountId') || ''}
+                  onChange={(id) => {
+                    setValue('d365AccountId', id, { shouldValidate: true });
+                    // El contacto elegido antes puede no pertenecer a la
+                    // empresa nueva — se limpia para no dejar una
+                    // combinación inconsistente.
+                    setValue('d365ContactId', '', { shouldValidate: true });
+                  }}
+                />
+                {errors.d365AccountId && (
+                  <p className="text-xs text-destructive">{errors.d365AccountId.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm">
                   {t('table.contact')}
                   <span className="text-muted-foreground font-normal ml-1">{t('usersPage.contactHint')}</span>
                 </Label>
@@ -232,24 +252,14 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
                   entityType="contact"
                   value={watch('d365ContactId') || ''}
                   onChange={(id) => setValue('d365ContactId', id, { shouldValidate: true })}
+                  filterAccountId={watch('d365AccountId') || ''}
+                  disabled={!watch('d365AccountId')}
                 />
+                {!watch('d365AccountId') && (
+                  <p className="text-xs text-muted-foreground">{t('usersPage.selectCompanyFirst')}</p>
+                )}
                 {errors.d365ContactId && (
                   <p className="text-xs text-destructive">{errors.d365ContactId.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-sm">
-                  {t('usersPage.companyAccount')}
-                  <span className="text-muted-foreground font-normal ml-1">{t('usersPage.optional')}</span>
-                </Label>
-                <D365Combobox
-                  entityType="account"
-                  value={watch('d365AccountId') || ''}
-                  onChange={(id) => setValue('d365AccountId', id, { shouldValidate: true })}
-                />
-                {errors.d365AccountId && (
-                  <p className="text-xs text-destructive">{errors.d365AccountId.message}</p>
                 )}
               </div>
             </div>

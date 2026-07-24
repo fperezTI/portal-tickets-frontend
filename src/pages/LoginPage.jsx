@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowRight, Layers } from 'lucide-react';
+import { ArrowRight, Layers, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 // El formulario de login se muestra siempre antes de conocer al usuario (y
 // por lo tanto su idioma), así que sus mensajes de validación no pasan por
@@ -18,23 +18,25 @@ const schema = z.object({
   password: z.string().min(1, 'Contraseña requerida'),
 });
 
-/* Decorative asterisk / star inspired by Grupo Staff logo */
-const GsAsterisk = ({ className = '' }) => (
-  <svg viewBox="0 0 80 80" fill="none" className={className} aria-hidden>
-    {/* Top - cyan */}
-    <path d="M40 4 L46 30 L34 30 Z" fill="oklch(0.68 0.11 208)" opacity="0.9" />
-    {/* Top-right - orange */}
-    <path d="M72 16 L52 36 L44 24 Z" fill="oklch(0.72 0.18 48)" opacity="0.9" />
-    {/* Right - orange-red */}
-    <path d="M76 40 L50 46 L50 34 Z" fill="oklch(0.65 0.22 32)" opacity="0.85" />
-    {/* Bottom-right - green */}
-    <path d="M64 70 L44 50 L56 44 Z" fill="oklch(0.62 0.17 145)" opacity="0.9" />
-    {/* Bottom-left - green */}
-    <path d="M16 70 L36 50 L36 62 Z" fill="oklch(0.55 0.15 145)" opacity="0.85" />
-    {/* Left - red */}
-    <path d="M4 40 L30 34 L30 46 Z" fill="oklch(0.60 0.22 20)" opacity="0.9" />
-    {/* Top-left - teal */}
-    <path d="M8 16 L28 36 L20 44 Z" fill="oklch(0.68 0.11 208)" opacity="0.70" />
+/* Gráfico decorativo de nodos conectados — mismo cyan de marca, evoca la red
+   de sistemas/tickets integrados sin competir visualmente con el texto. */
+const NetworkGraphic = ({ className = '' }) => (
+  <svg viewBox="0 0 220 160" fill="none" className={className} aria-hidden>
+    <g stroke="var(--gs-cyan)" strokeOpacity="0.35" strokeWidth="1">
+      <line x1="110" y1="85" x2="30" y2="30" />
+      <line x1="110" y1="85" x2="80" y2="12" />
+      <line x1="110" y1="85" x2="140" y2="18" />
+      <line x1="110" y1="85" x2="185" y2="55" />
+      <line x1="110" y1="85" x2="165" y2="105" />
+      <line x1="110" y1="85" x2="125" y2="145" />
+    </g>
+    <circle cx="110" cy="85" r="4.5" fill="var(--gs-cyan)" />
+    <circle cx="30" cy="30" r="2.5" fill="var(--gs-cyan)" fillOpacity="0.75" />
+    <circle cx="80" cy="12" r="2" fill="var(--gs-cyan)" fillOpacity="0.6" />
+    <circle cx="140" cy="18" r="2" fill="var(--gs-cyan)" fillOpacity="0.6" />
+    <circle cx="185" cy="55" r="2.5" fill="var(--gs-cyan)" fillOpacity="0.75" />
+    <circle cx="165" cy="105" r="2" fill="var(--gs-cyan)" fillOpacity="0.55" />
+    <circle cx="125" cy="145" r="2" fill="var(--gs-cyan)" fillOpacity="0.55" />
   </svg>
 );
 
@@ -42,6 +44,7 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
@@ -67,29 +70,20 @@ const LoginPage = () => {
           background: 'linear-gradient(150deg, var(--gs-navy) 0%, oklch(0.19 0.07 258) 100%)',
         }}
       >
-        {/* Decorative circles */}
-        <div
-          className="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-10"
-          style={{ background: 'var(--gs-cyan)' }}
-        />
-        <div
-          className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full opacity-[0.07]"
-          style={{ background: 'var(--gs-cyan)' }}
-        />
-
         {/* Logo */}
-        <div className="relative z-10">
-          <img
-            src="/LOGO%20GS%20Azul_300.png"
-            alt="Grupo Staff"
-            className="h-12 w-auto object-contain object-left"
-            style={{ maxWidth: '220px' }}
-          />
+        <div className="relative z-10 flex items-center gap-3">
+          <img src="/isotipo.png" alt="" className="w-9 h-9 shrink-0 object-contain" />
+          <div className="leading-tight">
+            <p className="text-white font-bold text-base tracking-tight">GRUPO STAFF</p>
+            <p className="text-[10px] tracking-wider" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
+              BUSINESS PROCESS &amp; IT CONSULTING
+            </p>
+          </div>
         </div>
 
         {/* Center content */}
         <div className="relative z-10 space-y-6">
-          <GsAsterisk className="w-20 h-20 mb-4" />
+          <NetworkGraphic className="w-44 h-32 -ml-2" />
           <h1 className="text-4xl font-bold text-white leading-tight tracking-tight">
             Portal de<br />
             <span style={{ color: 'var(--gs-cyan)' }}>Soporte</span>
@@ -100,7 +94,7 @@ const LoginPage = () => {
 
           {/* Features */}
           <div className="space-y-3 pt-2">
-            {['Integrado con Dynamics 365', 'Seguimiento en tiempo real', 'Gestión centralizada'].map((f) => (
+            {['Integrado con Microsoft Dynamics 365', 'Seguimiento en tiempo real', 'Gestión centralizada de tickets'].map((f) => (
               <div key={f} className="flex items-center gap-3">
                 <div
                   className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -119,8 +113,8 @@ const LoginPage = () => {
       </div>
 
       {/* ── Panel derecho — formulario ── */}
-      <div className="flex-1 flex items-center justify-center bg-background p-8">
-        <div className="w-full max-w-sm space-y-8">
+      <div className="flex-1 flex items-center justify-center p-8" style={{ background: 'oklch(0.97 0.004 258)' }}>
+        <div className="w-full max-w-sm bg-card border rounded-2xl shadow-xl p-8 space-y-8">
 
           {/* Mobile logo */}
           <div className="lg:hidden">
@@ -150,14 +144,17 @@ const LoginPage = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="email">Correo electrónico</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="usuario@empresa.com"
-                autoComplete="email"
-                className="h-10"
-                {...register('email')}
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="usuario@empresa.com"
+                  autoComplete="email"
+                  className="h-11 pl-10"
+                  {...register('email')}
+                />
+              </div>
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
@@ -165,13 +162,26 @@ const LoginPage = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                className="h-10"
-                {...register('password')}
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Ingresa tu contraseña"
+                  autoComplete="current-password"
+                  className="h-11 pl-10 pr-10"
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
@@ -179,7 +189,7 @@ const LoginPage = () => {
 
             <Button
               type="submit"
-              className="w-full h-10 font-semibold gap-2"
+              className="w-full h-11 font-semibold gap-2"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Verificando...' : 'Ingresar'}

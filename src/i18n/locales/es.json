@@ -217,7 +217,8 @@
     "hoursByMonthSubtitle": "Horas de los registros de soporte de cada cliente, agrupadas por mes del año seleccionado.",
     "hoursByMonthClient": "Cliente",
     "hoursByMonthError": "Error al cargar las horas por mes",
-    "hoursByMonthEmpty": "No hay registros de soporte con fecha en {{year}}."
+    "hoursByMonthEmpty": "No hay registros de soporte con fecha en {{year}}.",
+    "hoursByMonthNoType": "Sin tipo"
   },
   "policyDetail": {
     "detailFull": "Este detalle ya completó sus horas disponibles y quedó marcado como Inactivo.",
@@ -329,7 +330,7 @@
     "d365Linking": "Vinculación Dynamics 365",
     "contactHint": "— persona responsable del ticket",
     "companyAccount": "Empresa / Cuenta",
-    "optional": "(opcional)",
+    "selectCompanyFirst": "Elige primero la empresa para poder buscar su contacto.",
     "newPassword": "Nueva contraseña",
     "passwordRequired": "Contraseña *",
     "passwordHint": "(dejar vacío para no cambiar)",
