@@ -124,7 +124,7 @@ const PoliciesTable = ({ policies, onRowClick }) => {
       data={policies}
       getRowKey={(p) => p.id}
       onRowClick={(p) => onRowClick(p.id)}
-      maxHeight="calc(100vh-260px)"
+      maxHeight="calc(100vh - 260px)"
     />
   );
 };

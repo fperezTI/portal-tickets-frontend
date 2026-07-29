@@ -123,7 +123,7 @@ const Layout = () => {
         </div>
 
         {/* ── Navegación ────────────────────────────── */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-hidden">
+        <nav className="flex-1 min-h-0 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
           <p
             className="text-[10px] font-bold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden"
             style={{

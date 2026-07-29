@@ -366,7 +366,7 @@ const ConsumptionPage = () => {
           )}
 
           {!loading && groups.length > 0 && (
-            <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto">
+            <div className="overflow-x-auto max-h-[calc(100vh_-_260px)] overflow-y-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/60 border-y sticky top-0 z-10">
                   <tr>

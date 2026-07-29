@@ -409,7 +409,7 @@ const CaseDetailPage = () => {
 
         {/* ── Right column: timeline ── */}
         <div className="lg:sticky lg:top-4">
-          <Card className="h-full min-h-[400px] lg:max-h-[calc(100vh-120px)]">
+          <Card className="h-full min-h-[400px] lg:max-h-[calc(100vh_-_120px)]">
             <CardContent className="pt-4 pb-4 h-full min-h-0 flex flex-col">
               <Timeline items={c.timeline || []} />
             </CardContent>

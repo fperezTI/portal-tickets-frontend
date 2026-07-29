@@ -198,7 +198,7 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
       getRowTitle={(c) => c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
       getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
       onRowClick={(c) => onRowClick(c.incidentid)}
-      maxHeight="calc(100vh-260px)"
+      maxHeight="calc(100vh - 260px)"
     />
   );
 };
@@ -248,7 +248,7 @@ const KanbanBoard = ({ cases, onCardClick, isStaff }) => {
     .forEach(([stage, items]) => columns.push({ stage, items }));
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2" style={{ maxHeight: 'calc(100vh-260px)' }}>
+    <div className="flex gap-4 overflow-x-auto pb-2" style={{ maxHeight: 'calc(100vh - 260px)' }}>
       {columns.map(({ stage, items }) => {
         const color = stageColor(stage);
         return (

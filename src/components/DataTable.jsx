@@ -125,7 +125,7 @@ const ColumnFilter = ({ col, data, value, onChange }) => {
   );
 };
 
-const DataTable = ({ columns, data, getRowKey, getRowClassName, getRowTitle, onRowClick, maxHeight = 'calc(100vh-320px)' }) => {
+const DataTable = ({ columns, data, getRowKey, getRowClassName, getRowTitle, onRowClick, maxHeight = 'calc(100vh - 320px)' }) => {
   const { t } = useTranslation();
   const defaultWidths = useMemo(() => {
     const w = {};

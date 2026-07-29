@@ -189,7 +189,7 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
       getRowTitle={(c) => c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
       getRowClassName={(c) => cn(c.cre2f_iswarranty ? 'bg-amber-50 hover:bg-amber-100 border-l-2 border-l-amber-400' : 'hover:bg-muted/30')}
       onRowClick={(c) => onRowClick(c.incidentid)}
-      maxHeight="calc(100vh-320px)"
+      maxHeight="calc(100vh - 320px)"
     />
   );
 };

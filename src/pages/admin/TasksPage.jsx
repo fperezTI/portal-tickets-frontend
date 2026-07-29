@@ -295,7 +295,7 @@ const TasksTable = ({ tasks, onSaved, onNavigate }) => {
       columns={columns}
       data={tasks}
       getRowKey={(t) => t.id}
-      maxHeight="calc(100vh-320px)"
+      maxHeight="calc(100vh - 320px)"
     />
   );
 };
