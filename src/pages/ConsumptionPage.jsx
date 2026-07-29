@@ -24,6 +24,8 @@ const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 // Mismo criterio de color/orden de etapas que ya usa el resto de la app.
 const STAGE_PALETTE = ['#94A3B8', '#0EA5E9', '#EAB308', '#F97316', '#22C55E', '#1E3A8A'];
 const STAGE_KEYWORD_COLOR = [
+  { kw: 'open case',   color: '#8B5CF6' },
+  { kw: 'open',        color: '#8B5CF6' },
   { kw: 'approval',    color: '#94A3B8' },
   { kw: 'in progress', color: '#0EA5E9' },
   { kw: 'progress',    color: '#0EA5E9' },
@@ -39,7 +41,9 @@ const stageColor = (name) => {
   const lower = name.toLowerCase();
   return STAGE_KEYWORD_COLOR.find(({ kw }) => lower.includes(kw))?.color ?? '#94A3B8';
 };
-const STAGE_ORDER = ['approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
+// "Open Case" es la etapa inicial (ticket recién creado, sin triage) — va
+// primero. El resto sigue el flujo normal de aprobación → cierre.
+const STAGE_ORDER = ['open', 'approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
 const stageOrder = (name) => {
   if (!name) return STAGE_ORDER.length;
   const idx = STAGE_ORDER.findIndex((kw) => name.toLowerCase().includes(kw));
@@ -55,7 +59,7 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>
-          <p className={`text-3xl font-bold mt-1.5 tabular-nums ${valueColor}`}>
+          <p className={`text-3xl font-bold font-display mt-1.5 tabular-nums ${valueColor}`}>
             {value ?? <span className="text-xl text-muted-foreground">—</span>}
           </p>
         </div>
@@ -407,7 +411,7 @@ const ConsumptionPage = () => {
                               onDoubleClick={() => navigate(`/cases/${r.ticketId}`)}
                             >
                               <td className={cn('pl-8 pr-4 py-2 text-sm font-bold whitespace-nowrap sticky left-0', r.isWarranty ? 'bg-amber-50' : 'bg-background')}>
-                                <span className="inline-flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1.5 font-mono">
                                   {r.ticketNumber}
                                   {r.isWarranty && <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
                                 </span>

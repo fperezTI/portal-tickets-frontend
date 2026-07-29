@@ -151,7 +151,7 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
   const dateLocale = useDateLocale();
   const columns = [
     { key: 'ticket', label: t('table.ticket'), width: 190, accessor: (c) => c.ticketnumber,
-      render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
+      render: (c) => <span className="text-sm font-bold font-mono">{c.ticketnumber}</span> },
     { key: 'title', label: t('table.title'), width: 220, accessor: (c) => c.title,
       render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
     { key: 'etapa', label: t('table.stage'), width: 130, filterType: 'select',

@@ -97,7 +97,7 @@ const ConsultantForecastPanel = ({
               <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
                 {t('generalConsumption.estimated')}
               </span>
-              <span className="text-lg font-bold tabular-nums" style={{ color: accentColor }}>
+              <span className="text-lg font-bold font-display tabular-nums" style={{ color: accentColor }}>
                 {fmtHoursShared(m[metricKey])}h
               </span>
             </div>
@@ -105,7 +105,7 @@ const ConsultantForecastPanel = ({
               <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
                 {t('generalConsumption.consultantsLabel')}
               </span>
-              <span className="text-lg font-bold tabular-nums" style={{ color: accentColor }}>
+              <span className="text-lg font-bold font-display tabular-nums" style={{ color: accentColor }}>
                 {consultantsNeededFor(m[metricKey], hoursPerConsultant)}
               </span>
             </div>
@@ -117,7 +117,7 @@ const ConsultantForecastPanel = ({
             <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
               {t('generalConsumption.estimated')}
             </span>
-            <span className="text-lg font-bold tabular-nums" style={{ color: BRAND_ORANGE }}>
+            <span className="text-lg font-bold font-display tabular-nums" style={{ color: BRAND_ORANGE }}>
               {insight ? fmtHoursShared(insight.total) : '—'}h
             </span>
           </div>
@@ -125,7 +125,7 @@ const ConsultantForecastPanel = ({
             <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold">
               {t('generalConsumption.consultantsLabelAvg')}
             </span>
-            <span className="text-lg font-bold tabular-nums" style={{ color: BRAND_ORANGE }}>
+            <span className="text-lg font-bold font-display tabular-nums" style={{ color: BRAND_ORANGE }}>
               {insight && forecast.length ? consultantsNeededFor(insight.total / forecast.length, hoursPerConsultant) : '—'}
             </span>
           </div>
@@ -150,7 +150,7 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>
-          <p className={`text-3xl font-bold mt-1.5 tabular-nums ${valueColor}`}>
+          <p className={`text-3xl font-bold font-display mt-1.5 tabular-nums ${valueColor}`}>
             {value ?? <span className="text-xl text-muted-foreground">—</span>}
           </p>
         </div>
@@ -309,7 +309,7 @@ const GeneralConsumptionPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-primary tabular-nums">{fmtHoursShared(totals.hoursWorked)}h</span>
+                <span className="text-3xl font-bold font-display text-primary tabular-nums">{fmtHoursShared(totals.hoursWorked)}h</span>
                 <span className="text-sm text-muted-foreground">{t('generalConsumption.hoursWorkedYear', { year })}</span>
               </div>
               <div className="space-y-3">

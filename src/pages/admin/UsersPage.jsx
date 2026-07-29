@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -475,7 +476,7 @@ const UsersPage = () => {
                       {/* Contacto */}
                       <td className="px-6 py-3">
                         {u.d365ContactId ? (
-                          <p className="text-xs font-medium truncate max-w-[180px]" title={u.d365ContactId}>
+                          <p className={cn('text-xs font-medium truncate max-w-[180px]', !u.contactName && 'font-mono')} title={u.d365ContactId}>
                             {u.contactName || shortGuid(u.d365ContactId)}
                           </p>
                         ) : (
@@ -486,7 +487,7 @@ const UsersPage = () => {
                       {/* Cuenta */}
                       <td className="px-6 py-3">
                         {u.d365AccountId ? (
-                          <p className="text-xs font-medium truncate max-w-[180px]" title={u.d365AccountId}>
+                          <p className={cn('text-xs font-medium truncate max-w-[180px]', !u.accountName && 'font-mono')} title={u.d365AccountId}>
                             {u.accountName || shortGuid(u.d365AccountId)}
                           </p>
                         ) : (

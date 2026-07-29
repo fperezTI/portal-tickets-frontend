@@ -18,25 +18,72 @@ const schema = z.object({
   password: z.string().min(1, 'Contraseña requerida'),
 });
 
-/* Gráfico decorativo de nodos conectados — mismo cyan de marca, evoca la red
-   de sistemas/tickets integrados sin competir visualmente con el texto. */
-const NetworkGraphic = ({ className = '' }) => (
-  <svg viewBox="0 0 220 160" fill="none" className={className} aria-hidden>
-    <g stroke="var(--gs-cyan)" strokeOpacity="0.35" strokeWidth="1">
-      <line x1="110" y1="85" x2="30" y2="30" />
-      <line x1="110" y1="85" x2="80" y2="12" />
-      <line x1="110" y1="85" x2="140" y2="18" />
-      <line x1="110" y1="85" x2="185" y2="55" />
-      <line x1="110" y1="85" x2="165" y2="105" />
-      <line x1="110" y1="85" x2="125" y2="145" />
-    </g>
-    <circle cx="110" cy="85" r="4.5" fill="var(--gs-cyan)" />
-    <circle cx="30" cy="30" r="2.5" fill="var(--gs-cyan)" fillOpacity="0.75" />
-    <circle cx="80" cy="12" r="2" fill="var(--gs-cyan)" fillOpacity="0.6" />
-    <circle cx="140" cy="18" r="2" fill="var(--gs-cyan)" fillOpacity="0.6" />
-    <circle cx="185" cy="55" r="2.5" fill="var(--gs-cyan)" fillOpacity="0.75" />
-    <circle cx="165" cy="105" r="2" fill="var(--gs-cyan)" fillOpacity="0.55" />
-    <circle cx="125" cy="145" r="2" fill="var(--gs-cyan)" fillOpacity="0.55" />
+/* Elemento firma: la X del isotipo reinterpretada como red de datos. Los 4
+   brazos diagonales son los 4 módulos del portal (Tickets, Pólizas, Consumo,
+   Tareas) convergiendo en un centro naranja — el portal como punto único
+   donde todo se cruza, igual que las cintas del isotipo. Cada brazo se
+   extiende a un nodo satélite (el detalle dentro de cada módulo). Se dibuja
+   una sola vez al cargar la pantalla — el único gesto de movimiento de todo
+   el sistema. */
+const PRIMARY = [
+  { x: 65,  y: 40  }, // Tickets
+  { x: 155, y: 40  }, // Pólizas
+  { x: 65,  y: 130 }, // Consumo
+  { x: 155, y: 130 }, // Tareas
+];
+const SATELLITE = [
+  { x: 40,  y: 15  },
+  { x: 180, y: 15  },
+  { x: 40,  y: 155 },
+  { x: 180, y: 155 },
+];
+
+const SignatureGraphic = ({ className = '' }) => (
+  <svg viewBox="0 0 220 170" fill="none" className={className} aria-hidden>
+    {/* Brazos primarios — centro a cada módulo */}
+    {PRIMARY.map((p, i) => (
+      <line
+        key={`pl-${i}`}
+        className="gs-signature-line"
+        pathLength="1"
+        x1="110" y1="85" x2={p.x} y2={p.y}
+        stroke="var(--gs-cyan)" strokeOpacity="0.45" strokeWidth="1.25"
+        style={{ animationDelay: `${150 + i * 90}ms` }}
+      />
+    ))}
+    {/* Brazos secundarios — módulo a su nodo satélite */}
+    {PRIMARY.map((p, i) => (
+      <line
+        key={`sl-${i}`}
+        className="gs-signature-line"
+        pathLength="1"
+        x1={p.x} y1={p.y} x2={SATELLITE[i].x} y2={SATELLITE[i].y}
+        stroke="var(--gs-cyan)" strokeOpacity="0.28" strokeWidth="1"
+        style={{ animationDelay: `${620 + i * 80}ms` }}
+      />
+    ))}
+
+    {/* Centro — el portal, el único acento naranja */}
+    <circle
+      className="gs-signature-node" cx="110" cy="85" r="5" fill="var(--gs-orange)"
+      style={{ animationDelay: '0ms' }}
+    />
+    {/* Nodos de módulo */}
+    {PRIMARY.map((p, i) => (
+      <circle
+        key={`pn-${i}`}
+        className="gs-signature-node" cx={p.x} cy={p.y} r="3.25" fill="var(--gs-cyan)"
+        style={{ animationDelay: `${560 + i * 90}ms` }}
+      />
+    ))}
+    {/* Nodos satélite */}
+    {SATELLITE.map((p, i) => (
+      <circle
+        key={`sn-${i}`}
+        className="gs-signature-node" cx={p.x} cy={p.y} r="2" fill="var(--gs-cyan)" fillOpacity="0.7"
+        style={{ animationDelay: `${1020 + i * 80}ms` }}
+      />
+    ))}
   </svg>
 );
 
@@ -83,8 +130,8 @@ const LoginPage = () => {
 
         {/* Center content */}
         <div className="relative z-10 space-y-6">
-          <NetworkGraphic className="w-44 h-32 -ml-2" />
-          <h1 className="text-4xl font-bold text-white leading-tight tracking-tight">
+          <SignatureGraphic className="w-48 h-36 -ml-2" />
+          <h1 className="text-4xl font-bold font-display text-white leading-tight tracking-tight">
             Portal de<br />
             <span style={{ color: 'var(--gs-cyan)' }}>Soporte</span>
           </h1>

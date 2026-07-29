@@ -14,6 +14,8 @@ import { fmtHours } from '@/lib/utils';
 // ─── Colores de etapa (por prefijo numérico en el nombre) ─────────────────────
 const STAGE_PALETTE = ['#94A3B8', '#0EA5E9', '#EAB308', '#F97316', '#22C55E', '#1E3A8A'];
 const STAGE_KEYWORD_COLOR = [
+  { kw: 'open case',   color: '#8B5CF6' },
+  { kw: 'open',        color: '#8B5CF6' },
   { kw: 'approval',    color: '#94A3B8' },
   { kw: 'in progress', color: '#0EA5E9' },
   { kw: 'progress',    color: '#0EA5E9' },
@@ -30,7 +32,9 @@ const stageColor = (name) => {
   return STAGE_KEYWORD_COLOR.find(({ kw }) => lower.includes(kw))?.color ?? '#94A3B8';
 };
 
-const STAGE_ORDER = ['approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
+// "Open Case" es la etapa inicial (ticket recién creado, sin triage) — va
+// primero. El resto sigue el flujo normal de aprobación → cierre.
+const STAGE_ORDER = ['open', 'approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
 const stageOrder = (name) => {
   const lower = name?.toLowerCase() ?? '';
   const idx = STAGE_ORDER.findIndex((kw) => lower.includes(kw));
@@ -46,7 +50,7 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground font-medium truncate">{label}</p>
-          <p className={`text-4xl font-bold mt-1.5 tabular-nums ${valueColor}`}>
+          <p className={`text-4xl font-bold font-display mt-1.5 tabular-nums ${valueColor}`}>
             {value ?? <span className="text-2xl text-muted-foreground">—</span>}
           </p>
         </div>
@@ -408,15 +412,15 @@ const DashboardPage = () => {
             {/* Tres métricas clave */}
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl py-3 px-2" style={{ background: '#EFF9FB' }}>
-                <p className="text-2xl font-bold tabular-nums" style={{ color: CYAN }}>{totalMonthCreated}</p>
+                <p className="text-2xl font-bold font-display tabular-nums" style={{ color: CYAN }}>{totalMonthCreated}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t('dashboard.created')}</p>
               </div>
               <div className="rounded-xl py-3 px-2 bg-green-50">
-                <p className="text-2xl font-bold tabular-nums text-green-600">{totalMonthClosed}</p>
+                <p className="text-2xl font-bold font-display tabular-nums text-green-600">{totalMonthClosed}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t('dashboard.closed')}</p>
               </div>
               <div className="rounded-xl py-3 px-2 bg-primary/5">
-                <p className="text-2xl font-bold tabular-nums text-primary">
+                <p className="text-2xl font-bold font-display tabular-nums text-primary">
                   {totalMonthCreated > 0 ? Math.round((totalMonthClosed / totalMonthCreated) * 100) : 0}%
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{t('dashboard.closeRate')}</p>

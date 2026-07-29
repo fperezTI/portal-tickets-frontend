@@ -137,7 +137,7 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold truncate flex items-center gap-1.5">
                       {s.isWarranty && <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
-                      {s.ticketNumber || s.ticketId}
+                      <span className="font-mono">{s.ticketNumber || s.ticketId}</span>
                       {s.ticketTitle && <span className="ml-1.5 font-normal text-muted-foreground">— {s.ticketTitle}</span>}
                     </p>
                     {s.month && (
@@ -201,7 +201,7 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
                 className={cn('flex items-center justify-between gap-2 rounded-lg border p-2.5', a.isWarranty ? 'bg-amber-50 border-amber-200' : 'bg-background')}
               >
                 <div className="min-w-0">
-                  <span className="text-sm font-bold inline-flex items-center gap-1.5">
+                  <span className="text-sm font-bold font-mono inline-flex items-center gap-1.5">
                     {a.isWarranty && <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
                     {a.ticketNumber || a.ticketId}
                   </span>
@@ -672,7 +672,7 @@ const PolicyDetailPage = () => {
                   <tbody className="divide-y">
                     {linkedTickets.map((lt) => (
                       <tr key={lt.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="pl-6 pr-4 py-2.5 font-bold whitespace-nowrap">
+                        <td className="pl-6 pr-4 py-2.5 font-bold font-mono whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5">
                             {lt.isWarranty && <ShieldCheck className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
                             {lt.ticketNumber || lt.ticketId}
@@ -718,7 +718,7 @@ const PolicyDetailPage = () => {
               {unmatched.map((u, i) => (
                 <div key={i} className="text-xs text-muted-foreground rounded border border-dashed p-2 flex items-center justify-between gap-2">
                   <span>
-                    <span className="font-medium text-foreground">{u.ticketNumber || u.ticketId}</span> — {fmtHours(u.hours)}h
+                    <span className="font-medium font-mono text-foreground">{u.ticketNumber || u.ticketId}</span> — {fmtHours(u.hours)}h
                     {u.dueDate && <span className="ml-1.5">· {t('policyDetail.dueDateShort')} {fmtDayKey(u.dueDate, dateLocale)}</span>}
                   </span>
                   <span>{u.reason && UNMATCHED_REASON_KEY[u.reason] ? t(UNMATCHED_REASON_KEY[u.reason]) : u.reason}</span>

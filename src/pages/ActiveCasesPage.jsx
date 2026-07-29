@@ -40,6 +40,8 @@ const STAFF_ROLES = ['admin', 'support'];
 
 const STAGE_PALETTE = ['#94A3B8', '#0EA5E9', '#EAB308', '#F97316', '#22C55E', '#1E3A8A'];
 const STAGE_KEYWORD_COLOR = [
+  { kw: 'open case',   color: '#8B5CF6' },
+  { kw: 'open',        color: '#8B5CF6' },
   { kw: 'approval',    color: '#94A3B8' },
   { kw: 'in progress', color: '#0EA5E9' },
   { kw: 'progress',    color: '#0EA5E9' },
@@ -55,7 +57,9 @@ const stageColor = (name) => {
   const lower = name.toLowerCase();
   return STAGE_KEYWORD_COLOR.find(({ kw }) => lower.includes(kw))?.color ?? '#94A3B8';
 };
-const STAGE_ORDER = ['approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
+// "Open Case" es la etapa inicial (ticket recién creado, sin triage) — va
+// primero. El resto sigue el flujo normal de aprobación → cierre.
+const STAGE_ORDER = ['open', 'approval', 'progress', 'test', 'wait', 'resolv', 'clos'];
 const stageOrder = (name) => {
   if (!name) return STAGE_ORDER.length;
   const lower = name.toLowerCase();
@@ -160,7 +164,7 @@ const ActiveCasesTable = ({ cases, onRowClick, isStaff }) => {
   const dateLocale = useDateLocale();
   const columns = [
     { key: 'ticket', label: t('table.ticket'), width: 190, accessor: (c) => c.ticketnumber,
-      render: (c) => <span className="text-sm font-bold">{c.ticketnumber}</span> },
+      render: (c) => <span className="text-sm font-bold font-mono">{c.ticketnumber}</span> },
     { key: 'title', label: t('table.title'), width: 220, accessor: (c) => c.title,
       render: (c) => <span className="font-medium line-clamp-2">{c.title}</span> },
     ...(isStaff ? [{
@@ -213,7 +217,7 @@ const KanbanCard = ({ c, onClick, isStaff }) => {
       title={c.cre2f_iswarranty ? t('cases.warrantyTicket') : undefined}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-bold text-primary">{c.ticketnumber}</span>
+        <span className="text-xs font-bold font-mono text-primary">{c.ticketnumber}</span>
         <PriorityBadge code={c.prioritycode} />
       </div>
       <p className="text-sm font-medium line-clamp-2">{c.title}</p>
