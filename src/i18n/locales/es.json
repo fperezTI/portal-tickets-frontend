@@ -144,7 +144,16 @@
     "overdue": "Vencido",
     "completed": "Completado",
     "seeLess": "Ver menos",
-    "seeMore": "Ver más"
+    "seeMore": "Ver más",
+    "commentPlaceholder": "Escribe un comentario…",
+    "attachFile": "Adjuntar archivo",
+    "sendComment": "Enviar",
+    "commentAdded": "Comentario agregado",
+    "commentAddError": "Error al agregar el comentario",
+    "commentEmpty": "Escribe un comentario o adjunta un archivo",
+    "fileTooLarge": "El archivo supera el tamaño máximo permitido (10MB)",
+    "fileTypeNotAllowed": "Tipo de archivo no permitido",
+    "attachmentDownloadError": "Error al descargar el archivo"
   },
   "newCase": {
     "caseTypeQuestion": "Pregunta",
@@ -183,7 +192,13 @@
     "portalBadgeTitle": "Los tickets creados desde el portal siempre quedan marcados como tal",
     "portalBadge": "Portal: Sí",
     "requestDetails": "Detalles de la solicitud",
-    "requestDetailsSubtitle": "Completa la información para abrir un ticket de soporte."
+    "requestDetailsSubtitle": "Completa la información para abrir un ticket de soporte.",
+    "attachmentsLabel": "Imágenes o archivos adjuntos (opcional)",
+    "attachmentsHint": "Hasta {{max}} archivos — imágenes, PDF, Office, txt/csv o zip, máx. 10MB c/u",
+    "attachFiles": "Adjuntar archivos",
+    "tooManyAttachments": "Máximo {{max}} archivos por ticket",
+    "attachmentsPartialError": "El ticket se creó, pero {{failed}} de {{total}} archivo(s) no se pudieron adjuntar",
+    "uploadingAttachments": "Subiendo adjuntos..."
   },
   "combobox": {
     "searchContact": "Buscar contacto…",

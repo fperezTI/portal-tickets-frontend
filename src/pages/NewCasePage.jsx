@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { createCase } from '../api/cases';
+import { createCase, addCaseComment } from '../api/cases';
 import { listServiceCategories, listSystems, listAreas } from '../api/d365';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/select';
 import D365Combobox from '../components/D365Combobox';
 import PolicyCombobox from '../components/PolicyCombobox';
-import { ArrowLeft, Lock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Lock, CheckCircle2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_TICKET } from '@/lib/attachments';
 
 const STAFF_ROLES = ['admin', 'support'];
 
@@ -93,6 +94,9 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
   const ownAccountId = user?.d365AccountId || '';
   const ownContactId = user?.d365ContactId || '';
   const [policyLabel, setPolicyLabel] = useState('');
+  const [attachments, setAttachments] = useState([]); // [{ id, file, previewUrl }]
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const fileInputRef = useRef(null);
 
   const {
     register,
@@ -117,6 +121,47 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
       policyId:          '',
     },
   });
+
+  const handleFilesSelected = (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = ''; // permite volver a elegir el mismo archivo tras quitarlo
+
+    const room = MAX_ATTACHMENTS_PER_TICKET - attachments.length;
+    if (room <= 0) {
+      toast.error(t('newCase.tooManyAttachments', { max: MAX_ATTACHMENTS_PER_TICKET }));
+      return;
+    }
+
+    const accepted = [];
+    for (const file of picked) {
+      if (!ALLOWED_ATTACHMENT_TYPES[file.type]) {
+        toast.error(`${t('caseDetail.fileTypeNotAllowed')}: ${file.name}`);
+        continue;
+      }
+      if (file.size > MAX_ATTACHMENT_SIZE) {
+        toast.error(`${t('caseDetail.fileTooLarge')}: ${file.name}`);
+        continue;
+      }
+      if (accepted.length >= room) {
+        toast.error(t('newCase.tooManyAttachments', { max: MAX_ATTACHMENTS_PER_TICKET }));
+        break;
+      }
+      accepted.push({
+        id: `${file.name}-${file.lastModified}-${file.size}`,
+        file,
+        previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+      });
+    }
+    if (accepted.length) setAttachments((prev) => [...prev, ...accepted]);
+  };
+
+  const handleRemoveAttachment = (id) => {
+    setAttachments((prev) => {
+      const target = prev.find((a) => a.id === id);
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((a) => a.id !== id);
+    });
+  };
 
   const onSubmit = async (data) => {
     setError('');
@@ -145,6 +190,22 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
             }
           : {}),
       });
+
+      // Los adjuntos se suben como comentarios del ticket recién creado (mismo
+      // endpoint/entidad "annotation" que los comentarios del timeline) — el ticket
+      // ya existe en este punto, así que un fallo aquí no debe revertir la creación.
+      if (attachments.length) {
+        setUploadingAttachments(true);
+        const results = await Promise.allSettled(
+          attachments.map(({ file }) => addCaseComment(newCase.incidentid, { file }))
+        );
+        setUploadingAttachments(false);
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed) toast.error(t('newCase.attachmentsPartialError', { failed, total: attachments.length }));
+        attachments.forEach((a) => a.previewUrl && URL.revokeObjectURL(a.previewUrl));
+        setAttachments([]);
+      }
+
       toast.success(t('newCase.createdToast'));
       // Se permanece en la misma pantalla, con los datos capturados visibles,
       // en lugar de navegar a la lista de tickets.
@@ -384,14 +445,74 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
         )}
       </div>
 
+      <div className="space-y-1.5">
+        <Label>{t('newCase.attachmentsLabel')}</Label>
+        <p className="text-xs text-muted-foreground">
+          {t('newCase.attachmentsHint', { max: MAX_ATTACHMENTS_PER_TICKET })}
+        </p>
+
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {attachments.map((a) => (
+              <div
+                key={a.id}
+                className="relative flex items-center gap-2 text-xs bg-muted rounded-md pl-2 pr-7 py-1.5"
+              >
+                {a.previewUrl ? (
+                  <img src={a.previewUrl} alt={a.file.name} className="h-6 w-6 rounded object-cover flex-shrink-0" />
+                ) : (
+                  <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
+                )}
+                <span className="truncate max-w-[160px]">{a.file.name}</span>
+                {!locked && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAttachment(a.id)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!locked && (
+          <div className="pt-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={Object.values(ALLOWED_ATTACHMENT_TYPES).join(',')}
+              onChange={handleFilesSelected}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={attachments.length >= MAX_ATTACHMENTS_PER_TICKET}
+            >
+              <Paperclip className="h-3.5 w-3.5 mr-1.5" /> {t('newCase.attachFiles')}
+            </Button>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-3 pt-1">
         {createdCase ? (
           <Button type="button" onClick={onCreateAnother}>
             {t('newCase.createAnother')}
           </Button>
         ) : (
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? t('newCase.submitting') : t('newCase.createTicket')}
+          <Button type="submit" disabled={isSubmitting || uploadingAttachments}>
+            {uploadingAttachments
+              ? t('newCase.uploadingAttachments')
+              : isSubmitting
+                ? t('newCase.submitting')
+                : t('newCase.createTicket')}
           </Button>
         )}
         <Button type="button" variant="outline" onClick={() => navigate('/cases')}>

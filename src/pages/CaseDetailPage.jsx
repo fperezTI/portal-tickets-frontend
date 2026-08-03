@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format, isAfter } from 'date-fns';
 import { useDateLocale } from '../hooks/useDateLocale';
-import { getCaseDetail, updateCasePolicy } from '../api/cases';
+import { getCaseDetail, updateCasePolicy, addCaseComment, downloadCaseComment } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,14 +11,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import CaseStatusBadge from '../components/CaseStatusBadge';
 import PolicyCombobox from '../components/PolicyCombobox';
 import {
   ArrowLeft, Mail, Phone, CheckSquare, StickyNote,
   Calendar, FileText, Search, ChevronDown, ChevronUp, ShieldCheck, Loader2,
+  Paperclip, X, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fmtHours } from '@/lib/utils';
+import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_SIZE, triggerBlobDownload } from '@/lib/attachments';
 
 const STAFF_ROLES = ['admin', 'support'];
 
@@ -111,8 +114,37 @@ const ActivityIcon = ({ type }) => {
   return <FileText className={cls} />;
 };
 
+// ─── Attachment download link ──────────────────────────────────────────────────
+const AttachmentLink = ({ caseId, commentId, filename }) => {
+  const { t } = useTranslation();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const { blob, filename: serverFilename } = await downloadCaseComment(caseId, commentId);
+      triggerBlobDownload(blob, serverFilename || filename);
+    } catch {
+      toast.error(t('caseDetail.attachmentDownloadError'));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline mt-1.5 disabled:opacity-50"
+    >
+      {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
+      {filename}
+    </button>
+  );
+};
+
 // ─── Single timeline entry ─────────────────────────────────────────────────────
-const TimelineItem = ({ item }) => {
+const TimelineItem = ({ item, caseId }) => {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
   const [expanded, setExpanded] = useState(false);
@@ -167,13 +199,16 @@ const TimelineItem = ({ item }) => {
             {expanded ? <><ChevronUp className="h-3 w-3" /> {t('caseDetail.seeLess')}</> : <><ChevronDown className="h-3 w-3" /> {t('caseDetail.seeMore')}</>}
           </button>
         )}
+        {item.isDocument && item.filename && (
+          <AttachmentLink caseId={caseId} commentId={item.id} filename={item.filename} />
+        )}
       </div>
     </div>
   );
 };
 
 // ─── Timeline panel ────────────────────────────────────────────────────────────
-const Timeline = ({ items = [] }) => {
+const Timeline = ({ items = [], caseId }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
@@ -210,10 +245,103 @@ const Timeline = ({ items = [] }) => {
             {search ? t('caseDetail.noResults') : t('caseDetail.noActivity')}
           </p>
         ) : (
-          filtered.map(item => <TimelineItem key={item.id} item={item} />)
+          filtered.map(item => <TimelineItem key={item.id} item={item} caseId={caseId} />)
         )}
       </div>
     </div>
+  );
+};
+
+// ─── New comment form ───────────────────────────────────────────────────────────
+const CommentForm = ({ caseId, onCommentAdded }) => {
+  const { t } = useTranslation();
+  const [text, setText] = useState('');
+  const [file, setFile] = useState(null);
+  const [sending, setSending] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const picked = e.target.files?.[0] || null;
+    e.target.value = ''; // permite re-seleccionar el mismo archivo tras quitarlo
+    if (!picked) return;
+
+    if (!ALLOWED_ATTACHMENT_TYPES[picked.type]) {
+      toast.error(t('caseDetail.fileTypeNotAllowed'));
+      return;
+    }
+    if (picked.size > MAX_ATTACHMENT_SIZE) {
+      toast.error(t('caseDetail.fileTooLarge'));
+      return;
+    }
+    setFile(picked);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const trimmed = text.trim();
+    if (!trimmed && !file) {
+      toast.error(t('caseDetail.commentEmpty'));
+      return;
+    }
+
+    setSending(true);
+    try {
+      await addCaseComment(caseId, { notetext: trimmed, file });
+      setText('');
+      setFile(null);
+      toast.success(t('caseDetail.commentAdded'));
+      await onCommentAdded();
+    } catch (err) {
+      toast.error(err.response?.data?.error || t('caseDetail.commentAddError'));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-2">
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={t('caseDetail.commentPlaceholder')}
+        maxLength={4000}
+        className="min-h-20"
+        disabled={sending}
+      />
+      {file && (
+        <div className="flex items-center gap-2 text-xs bg-muted rounded-md px-2.5 py-1.5 w-fit">
+          <Paperclip className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate max-w-[220px]">{file.name}</span>
+          <button type="button" onClick={() => setFile(null)} disabled={sending} className="text-muted-foreground hover:text-foreground">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={Object.values(ALLOWED_ATTACHMENT_TYPES).join(',')}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={sending || !!file}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Paperclip className="h-3.5 w-3.5 mr-1.5" /> {t('caseDetail.attachFile')}
+          </Button>
+        </div>
+        <Button type="submit" size="sm" disabled={sending}>
+          {sending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
+          {t('caseDetail.sendComment')}
+        </Button>
+      </div>
+    </form>
   );
 };
 
@@ -236,6 +364,11 @@ const CaseDetailPage = () => {
       .catch((err) => setError(err.response?.data?.error || t('caseDetail.loadError')))
       .finally(() => setLoading(false));
   }, [id, t]);
+
+  // Tras agregar un comentario, se vuelve a pedir el detalle completo en vez de armar el
+  // comentario en el cliente — así comments/timeline quedan exactamente como los devuelve
+  // el backend (mismo mapeo, mismo orden) sin duplicar esa lógica en el frontend.
+  const refetchCase = () => getCaseDetail(id).then(setCaseData);
 
   // Regresa a la página anterior real (Tickets, Mis Tickets, Consumo, etc.) en
   // vez de siempre ir a /cases — así se conserva el estado/filtros de origen.
@@ -383,17 +516,25 @@ const CaseDetailPage = () => {
           </Card>
 
           {/* Comments (below details, left column) */}
-          {c.comments?.length > 0 && (
-            <div>
-              <h2 className="text-base font-semibold mb-3">
-                {t('caseDetail.comments', { count: c.comments.length })}
-              </h2>
+          <div>
+            <h2 className="text-base font-semibold mb-3">
+              {t('caseDetail.comments', { count: c.comments?.length || 0 })}
+            </h2>
+            <Card className="mb-3">
+              <CardContent className="pt-4 pb-4">
+                <CommentForm caseId={id} onCommentAdded={refetchCase} />
+              </CardContent>
+            </Card>
+            {c.comments?.length > 0 && (
               <div className="space-y-3">
                 {c.comments.map((comment) => (
                   <Card key={comment.annotationid}>
                     <CardContent className="pt-4 pb-3">
                       {comment.subject && <p className="font-medium text-sm mb-1">{comment.subject}</p>}
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.notetext}</p>
+                      {comment.notetext && <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.notetext}</p>}
+                      {comment.isdocument && comment.filename && (
+                        <AttachmentLink caseId={id} commentId={comment.annotationid} filename={comment.filename} />
+                      )}
                       <p className="text-xs text-muted-foreground mt-2">
                         {comment.createdon
                           ? format(new Date(comment.createdon), t('caseDetail.commentDateFormat'), { locale: dateLocale })
@@ -403,15 +544,15 @@ const CaseDetailPage = () => {
                   </Card>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ── Right column: timeline ── */}
         <div className="lg:sticky lg:top-4">
           <Card className="h-full min-h-[400px] lg:max-h-[calc(100vh_-_120px)]">
             <CardContent className="pt-4 pb-4 h-full min-h-0 flex flex-col">
-              <Timeline items={c.timeline || []} />
+              <Timeline items={c.timeline || []} caseId={id} />
             </CardContent>
           </Card>
         </div>

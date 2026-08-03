@@ -144,7 +144,16 @@
     "overdue": "Overdue",
     "completed": "Completed",
     "seeLess": "See less",
-    "seeMore": "See more"
+    "seeMore": "See more",
+    "commentPlaceholder": "Write a comment…",
+    "attachFile": "Attach file",
+    "sendComment": "Send",
+    "commentAdded": "Comment added",
+    "commentAddError": "Error adding the comment",
+    "commentEmpty": "Write a comment or attach a file",
+    "fileTooLarge": "The file exceeds the maximum allowed size (10MB)",
+    "fileTypeNotAllowed": "File type not allowed",
+    "attachmentDownloadError": "Error downloading the file"
   },
   "newCase": {
     "caseTypeQuestion": "Question",
@@ -183,7 +192,13 @@
     "portalBadgeTitle": "Tickets created from the portal are always flagged as such",
     "portalBadge": "Portal: Yes",
     "requestDetails": "Request details",
-    "requestDetailsSubtitle": "Fill in the information to open a support ticket."
+    "requestDetailsSubtitle": "Fill in the information to open a support ticket.",
+    "attachmentsLabel": "Images or file attachments (optional)",
+    "attachmentsHint": "Up to {{max}} files — images, PDF, Office, txt/csv or zip, max 10MB each",
+    "attachFiles": "Attach files",
+    "tooManyAttachments": "Maximum {{max}} files per ticket",
+    "attachmentsPartialError": "The ticket was created, but {{failed}} of {{total}} file(s) could not be attached",
+    "uploadingAttachments": "Uploading attachments..."
   },
   "combobox": {
     "searchContact": "Search contact…",
