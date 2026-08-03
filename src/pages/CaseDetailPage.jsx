@@ -143,18 +143,90 @@ const AttachmentLink = ({ caseId, commentId, filename }) => {
   );
 };
 
+// ─── Cuerpo de correo (HTML) ───────────────────────────────────────────────────
+// Los correos del timeline traen su description como HTML crudo (a veces un
+// documento completo con <html><head>...). Se renderiza dentro de un iframe
+// sandboxeado en vez de con dangerouslySetInnerHTML: sin "allow-scripts" en el
+// sandbox, cualquier <script>/handler embebido en el correo queda inerte —
+// protección contra XSS "gratis", sin depender de una librería de sanitizado.
+// "allow-same-origin" (sin scripts) es seguro y permite medir la altura real
+// del contenido e inyectar estilos base desde el propio componente.
+const EMAIL_COLLAPSED_HEIGHT = 100;
+
+const EmailBody = ({ html }) => {
+  const { t } = useTranslation();
+  const iframeRef = useRef(null);
+  const [contentHeight, setContentHeight] = useState(EMAIL_COLLAPSED_HEIGHT);
+  const [expanded, setExpanded] = useState(false);
+
+  const handleLoad = () => {
+    const doc = iframeRef.current?.contentDocument;
+    if (!doc) return;
+
+    const style = doc.createElement('style');
+    style.textContent = `
+      html, body { margin: 0; padding: 10px; background: #ffffff; color-scheme: light; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; line-height: 1.5; color: #1f2937; word-wrap: break-word; overflow-wrap: break-word; }
+      img { max-width: 100%; height: auto; }
+      table { max-width: 100%; }
+      a { color: #1B3860; }
+    `;
+    doc.head.appendChild(style);
+
+    if (!doc.querySelector('base')) {
+      const base = doc.createElement('base');
+      base.target = '_blank';
+      doc.head.prepend(base);
+    }
+
+    setContentHeight(Math.max(doc.body?.scrollHeight || 0, 80));
+  };
+
+  const canCollapse   = contentHeight > EMAIL_COLLAPSED_HEIGHT;
+  const visibleHeight = expanded ? contentHeight : Math.min(contentHeight, EMAIL_COLLAPSED_HEIGHT);
+
+  return (
+    <>
+      <iframe
+        ref={iframeRef}
+        srcDoc={html}
+        onLoad={handleLoad}
+        sandbox="allow-same-origin allow-popups"
+        title="email-body"
+        className="w-full border rounded-md mt-1.5 bg-white"
+        style={{ height: visibleHeight, colorScheme: 'light' }}
+      />
+      {canCollapse && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1 transition-colors"
+        >
+          {expanded
+            ? <><ChevronUp className="h-3 w-3" /> {t('caseDetail.seeLess')}</>
+            : <><ChevronDown className="h-3 w-3" /> {t('caseDetail.seeMore')}</>}
+        </button>
+      )}
+    </>
+  );
+};
+
 // ─── Single timeline entry ─────────────────────────────────────────────────────
 const TimelineItem = ({ item, caseId }) => {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
   const [expanded, setExpanded] = useState(false);
+  const isEmail = item.type === 'email';
   const owner = item.ownerName || '—';
   const dueDate = item.scheduledend || item.date;
   const dateStr = dueDate
     ? format(new Date(dueDate), 'dd/MM/yyyy HH:mm', { locale: dateLocale })
     : '';
 
-  const bodyText = [item.subject, item.description].filter(Boolean).join('\n').trim();
+  // Para correos, el cuerpo HTML se renderiza aparte (ver EmailBody) — acá solo
+  // queda el subject como texto plano, igual que antes de expandir/colapsar.
+  const bodyText = isEmail
+    ? (item.subject || '').trim()
+    : [item.subject, item.description].filter(Boolean).join('\n').trim();
   const preview  = bodyText.slice(0, 120);
   const hasMore  = bodyText.length > 120;
 
@@ -199,6 +271,7 @@ const TimelineItem = ({ item, caseId }) => {
             {expanded ? <><ChevronUp className="h-3 w-3" /> {t('caseDetail.seeLess')}</> : <><ChevronDown className="h-3 w-3" /> {t('caseDetail.seeMore')}</>}
           </button>
         )}
+        {isEmail && item.description && <EmailBody html={item.description} />}
         {item.isDocument && item.filename && (
           <AttachmentLink caseId={caseId} commentId={item.id} filename={item.filename} />
         )}
