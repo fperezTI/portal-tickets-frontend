@@ -153,7 +153,10 @@
     "commentEmpty": "Write a comment or attach a file",
     "fileTooLarge": "The file exceeds the maximum allowed size (10MB)",
     "fileTypeNotAllowed": "File type not allowed",
-    "attachmentDownloadError": "Error downloading the file"
+    "attachmentDownloadError": "Error downloading the file",
+    "requestClosure": "Request closure",
+    "closureRequested": "Closure request sent",
+    "closureRequestError": "Error requesting closure"
   },
   "newCase": {
     "caseTypeQuestion": "Question",

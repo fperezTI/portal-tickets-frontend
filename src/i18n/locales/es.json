@@ -153,7 +153,10 @@
     "commentEmpty": "Escribe un comentario o adjunta un archivo",
     "fileTooLarge": "El archivo supera el tamaño máximo permitido (10MB)",
     "fileTypeNotAllowed": "Tipo de archivo no permitido",
-    "attachmentDownloadError": "Error al descargar el archivo"
+    "attachmentDownloadError": "Error al descargar el archivo",
+    "requestClosure": "Solicitar cierre",
+    "closureRequested": "Solicitud de cierre enviada",
+    "closureRequestError": "Error al solicitar el cierre"
   },
   "newCase": {
     "caseTypeQuestion": "Pregunta",

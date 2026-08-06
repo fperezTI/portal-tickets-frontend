@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format, isAfter } from 'date-fns';
 import { useDateLocale } from '../hooks/useDateLocale';
-import { getCaseDetail, updateCasePolicy, addCaseComment, downloadCaseComment } from '../api/cases';
+import { getCaseDetail, updateCasePolicy, addCaseComment, downloadCaseComment, requestCaseClosure } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import PolicyCombobox from '../components/PolicyCombobox';
 import {
   ArrowLeft, Mail, Phone, CheckSquare, StickyNote,
   Calendar, FileText, Search, ChevronDown, ChevronUp, ShieldCheck, Loader2,
-  Paperclip, X, Send,
+  Paperclip, X, Send, Flag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fmtHours } from '@/lib/utils';
@@ -430,6 +430,7 @@ const CaseDetailPage = () => {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const [requestingClosure, setRequestingClosure] = useState(false);
 
   useEffect(() => {
     getCaseDetail(id)
@@ -448,6 +449,19 @@ const CaseDetailPage = () => {
   const handleBack = () => {
     if (window.history.length > 2) navigate(-1);
     else navigate('/cases');
+  };
+
+  const handleRequestClosure = async () => {
+    setRequestingClosure(true);
+    try {
+      await requestCaseClosure(id);
+      toast.success(t('caseDetail.closureRequested'));
+      await refetchCase();
+    } catch (err) {
+      toast.error(err.response?.data?.error || t('caseDetail.closureRequestError'));
+    } finally {
+      setRequestingClosure(false);
+    }
   };
 
   const handlePolicyChange = async (policyId, policyName) => {
@@ -497,6 +511,18 @@ const CaseDetailPage = () => {
           <p className="text-sm text-muted-foreground font-mono">{c.ticketnumber}</p>
           <h1 className="text-xl font-semibold mt-0.5 break-words">{c.title}</h1>
         </div>
+        {!isStaff && c.statecode === 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-0.5 flex-shrink-0"
+            onClick={handleRequestClosure}
+            disabled={requestingClosure}
+          >
+            {requestingClosure ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Flag className="h-3.5 w-3.5 mr-1.5" />}
+            {t('caseDetail.requestClosure')}
+          </Button>
+        )}
       </div>
 
       {/* Two-column layout: details left, timeline right */}

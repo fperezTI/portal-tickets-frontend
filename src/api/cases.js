@@ -14,6 +14,8 @@ export const addCaseComment = (caseId, { notetext, file }) => {
   return client.post(`/cases/${caseId}/comments`, formData).then((r) => r.data);
 };
 
+export const requestCaseClosure = (caseId) => client.post(`/cases/${caseId}/request-closure`).then((r) => r.data);
+
 export const downloadCaseComment = (caseId, commentId) =>
   client.get(`/cases/${caseId}/comments/${commentId}/download`, { responseType: 'blob' })
     .then((r) => {
