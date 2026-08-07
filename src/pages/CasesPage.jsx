@@ -5,7 +5,6 @@ import { format } from 'date-fns';
 import { useDateLocale } from '../hooks/useDateLocale';
 import { listCases } from '../api/cases';
 import { listUsers } from '../api/users';
-import { resolveAccount, resolveContact } from '../api/d365';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -257,8 +256,11 @@ const DEFAULT_FILTERS = { search: '', ticketNumber: '', statecode: '', priority:
 const CasesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, customerLabel: resolvedCustomerLabel } = useAuth();
   const isStaff  = STAFF_ROLES.includes(user?.role);
+  // Mientras AuthContext resuelve el nombre real (cuenta/contacto), se
+  // muestra el nombre/email del usuario para no dejar el título en blanco.
+  const customerLabel = resolvedCustomerLabel || user?.fullName || user?.email || '';
 
   const [filters, setFilters]   = useState(DEFAULT_FILTERS);
   const [clients, setClients]   = useState([]);
@@ -266,7 +268,6 @@ const CasesPage = () => {
   const [nextLink, setNextLink] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
-  const [customerLabel, setCustomerLabel] = useState(user?.fullName || user?.email || '');
 
   const effectiveContactId = isStaff ? null : (user?.d365ContactId || user?.d365AccountId || '');
   const hasCustomer = isStaff || !!effectiveContactId;
@@ -277,19 +278,6 @@ const CasesPage = () => {
       .then((r) => setClients(r.data.filter((u) => u.role === 'client' && (u.d365ContactId || u.d365AccountId))))
       .catch(() => {});
   }, [isStaff]);
-
-  useEffect(() => {
-    if (isStaff) return;
-    if (user?.d365AccountId) {
-      resolveAccount(user.d365AccountId)
-        .then((a) => setCustomerLabel(a.name || user?.fullName || user?.email || ''))
-        .catch(() => {});
-    } else if (user?.d365ContactId) {
-      resolveContact(user.d365ContactId)
-        .then((c) => setCustomerLabel(c.name || user?.fullName || user?.email || ''))
-        .catch(() => {});
-    }
-  }, [user?.d365AccountId, user?.d365ContactId, isStaff]);
 
   const fetchCases = useCallback(async (link = null) => {
     if (!isStaff && !effectiveContactId) return;

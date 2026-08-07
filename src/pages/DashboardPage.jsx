@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getDashboard } from '../api/cases';
-import { resolveAccount, resolveContact } from '../api/d365';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -195,13 +194,15 @@ const DashboardSkeleton = () => (
 // ─── Página ───────────────────────────────────────────────────────────────────
 const DashboardPage = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, customerLabel: resolvedCustomerLabel } = useAuth();
   const isStaff = STAFF_ROLES.includes(user?.role);
+  // Mientras AuthContext resuelve el nombre real (cuenta/contacto), se
+  // muestra el nombre/email del usuario para no dejar el título en blanco.
+  const customerLabel = resolvedCustomerLabel || user?.fullName || user?.email || '';
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [customerLabel, setCustomerLabel] = useState(user?.fullName || user?.email || '');
 
   useEffect(() => {
     getDashboard()
@@ -209,19 +210,6 @@ const DashboardPage = () => {
       .catch(() => setError(t('dashboard.loadError')))
       .finally(() => setLoading(false));
   }, [t]);
-
-  useEffect(() => {
-    if (isStaff) return;
-    if (user?.d365AccountId) {
-      resolveAccount(user.d365AccountId)
-        .then((a) => setCustomerLabel(a.name))
-        .catch(() => {});
-    } else if (user?.d365ContactId) {
-      resolveContact(user.d365ContactId)
-        .then((c) => setCustomerLabel(c.name))
-        .catch(() => {});
-    }
-  }, [isStaff, user?.d365AccountId, user?.d365ContactId]);
 
   if (loading) return (
     <div className="space-y-6">

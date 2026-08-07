@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
-import { resolveAccount, resolveContact } from '../api/d365';
 import ChangePasswordDialog from './ChangePasswordDialog';
 
 const NAV_ITEMS = [
@@ -39,28 +38,18 @@ const BOTTOM_NAV_ITEMS = [
 
 const Layout = () => {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, customerLabel } = useAuth();
   const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('gs-sidebar') === '1'
   );
   const [activeCount, setActiveCount] = useState(null);
-  const [customerLabel, setCustomerLabel] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   useEffect(() => {
     getStats().then((s) => setActiveCount(s.activeCases)).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (user?.role !== 'client') return;
-    if (user?.d365AccountId) {
-      resolveAccount(user.d365AccountId).then((a) => setCustomerLabel(a.name || '')).catch(() => {});
-    } else if (user?.d365ContactId) {
-      resolveContact(user.d365ContactId).then((c) => setCustomerLabel(c.name || '')).catch(() => {});
-    }
-  }, [user?.role, user?.d365AccountId, user?.d365ContactId]);
 
   const toggle = () =>
     setCollapsed((prev) => {
