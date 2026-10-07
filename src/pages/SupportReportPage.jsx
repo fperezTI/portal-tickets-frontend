@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { getSupportReport, listSupportReportCustomers } from '../api/supportReport';
@@ -112,30 +112,37 @@ const SupportReportPage = () => {
   const uiSheet = SHEET_TEXT[i18n.language === 'en' ? 'en' : 'es'];
 
   const [customers, setCustomers] = useState([]);
-  // Cliente y año en la URL (convención del portal, ?client=&year=).
+  const navigate = useNavigate();
+  const openTicket = (id) => navigate(`/cases/${id}`);
+  // TODOS los filtros viven en la URL (convención del portal): ?client=&year=
+  // y además &months=&group=&lang= (2026-10-07) — al abrir un ticket desde la
+  // matriz y regresar, la hoja vuelve exactamente igual.
   const [searchParams, setSearchParams] = useSearchParams();
+  const setParams = (changes) => setSearchParams((prev) => {
+    const next = new URLSearchParams(prev);
+    Object.entries(changes).forEach(([k, v]) => { if (v) next.set(k, String(v)); else next.delete(k); });
+    return next;
+  }, { replace: true });
   const customerId = searchParams.get('client') || '';
   const year = parseInt(searchParams.get('year') || String(CURRENT_YEAR), 10);
-  const setCustomerId = (id) => setSearchParams((prev) => {
-    const next = new URLSearchParams(prev);
-    if (id) next.set('client', id); else next.delete('client');
-    return next;
-  }, { replace: true });
-  const setYear = (y) => setSearchParams((prev) => {
-    const next = new URLSearchParams(prev);
-    next.set('year', String(y));
-    return next;
-  }, { replace: true });
+  // Cambiar de cliente o año cambia el periodo: los meses elegidos ya no aplican.
+  const setCustomerId = (id) => setParams({ client: id, months: null });
+  const setYear = (y) => setParams({ year: y, months: null });
   // Meses elegidos del periodo ("YYYY-MM"); null = todos. Acota TODA la hoja:
-  // tablas, tarjetas, módulos y subtítulo.
-  const [selectedMonths, setSelectedMonths] = useState(null);
-  const [groupBy, setGroupBy] = useState('status'); // 'status' | 'customerUser'
+  // tablas, tarjetas, módulos y subtítulo. Solo admin los elige (si otro rol
+  // trae ?months= en la URL, se ignora).
+  const selectedMonths = user?.role === 'admin' && searchParams.get('months')
+    ? searchParams.get('months').split(',')
+    : null;
+  const groupBy = searchParams.get('group') === 'customerUser' ? 'customerUser' : 'status';
+  const setGroupBy = (g) => setParams({ group: g === 'customerUser' ? g : null });
   // Idioma SOLO de la hoja imprimible. Staff: arranca en su idioma y lo cambia
   // con "Idioma del reporte". Client: sin selector, siempre el idioma de su
   // usuario del portal (decisión del usuario, 2026-10-06).
   const userLang = user?.language === 'en' ? 'en' : 'es';
-  const [staffLang, setLang] = useState(userLang);
-  const lang = isStaff ? staffLang : userLang;
+  const urlLang = searchParams.get('lang');
+  const lang = isStaff && (urlLang === 'es' || urlLang === 'en') ? urlLang : userLang;
+  const setLang = (l) => setParams({ lang: l === userLang ? null : l });
   const t = SHEET_TEXT[lang];
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -178,7 +185,7 @@ const SupportReportPage = () => {
     setError('');
     setLoading(true);
     getSupportReport(isStaff ? { customerId, year } : { year })
-      .then((r) => { if (reqId === requestIdRef.current) { setReport(r); setSelectedMonths(null); } })
+      .then((r) => { if (reqId === requestIdRef.current) setReport(r); })
       .catch((e) => { if (reqId === requestIdRef.current) setError(e.response?.data?.error || i18n.t('supportReport.loadError')); })
       .finally(() => { if (reqId === requestIdRef.current) setLoading(false); });
   }, [customerId, year, isStaff, i18n]);
@@ -199,7 +206,9 @@ const SupportReportPage = () => {
   // Todo se recalcula aquí sobre los meses elegidos, con los datos mes a mes que
   // ya trae el reporte (sin otra llamada al backend). Con todos los meses
   // elegidos, los números coinciden con los del backend.
-  const selMonths = selectedMonths ? periodMonths.filter((m) => selectedMonths.includes(m)) : periodMonths;
+  // Meses de la URL que no existan en el periodo se ignoran; si no queda ninguno, todos.
+  const urlSel = selectedMonths ? periodMonths.filter((m) => selectedMonths.includes(m)) : [];
+  const selMonths = urlSel.length ? urlSel : periodMonths;
   const isSubset = selMonths.length !== periodMonths.length;
   const r2 = (n) => Math.round(n * 100) / 100;
   const sumSel = (months, pick) => r2(selMonths.reduce((a, m) => a + pick(months[m]), 0));
@@ -208,12 +217,17 @@ const SupportReportPage = () => {
     ? periodMonths.filter((m) => report.grandTotal.months[m].hours || report.grandTotal.months[m].billable)
     : [];
 
-  const toggleMonth = (m) => setSelectedMonths((prev) => {
-    const cur = prev ?? periodMonths;
-    const next = cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m];
-    if (next.length === 0) return cur; // siempre al menos un mes
-    return next.length === periodMonths.length ? null : next;
+  // null / todos los meses = sin ?months= en la URL.
+  const setSelectedMonths = (list) => setParams({
+    months: list && list.length && list.length !== periodMonths.length
+      ? periodMonths.filter((m) => list.includes(m)).join(',')
+      : null,
   });
+  const toggleMonth = (m) => {
+    const next = selMonths.includes(m) ? selMonths.filter((x) => x !== m) : [...selMonths, m];
+    if (next.length === 0) return; // siempre al menos un mes
+    setSelectedMonths(next);
+  };
 
   // Tickets con horas o consumo en algún mes elegido; su Total = solo esos meses.
   const ticketView = (tk) => ({ ...tk, total: bucketSel(tk.months) });
@@ -588,8 +602,14 @@ const SupportReportPage = () => {
                       <td className="px-1 py-1 text-right">{fmt2(s.total.billable)}</td>
                     </tr>
                     {s.tickets.map((tk) => (
-                      <tr key={tk.ticketId} className="border-b border-border/60">
-                        <td className="ticket-cell px-2 py-0.5 pl-5 max-w-96" title={tk.title}>
+                      // Clic en cualquier parte de la fila del ticket abre el ticket en la misma
+                      // pestaña (pedido del usuario, 2026-10-07); los filtros quedan en la URL,
+                      // así que "Regresar" vuelve a la hoja igual. Enter también lo abre.
+                      <tr key={tk.ticketId} className="border-b border-border/60 cursor-pointer hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring print:cursor-auto"
+                        tabIndex={0} role="link" aria-label={`${tk.ticketNumber} ${tk.title}`}
+                        onClick={() => openTicket(tk.ticketId)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') openTicket(tk.ticketId); }}>
+                        <td className="ticket-cell px-2 py-0.5 pl-5 max-w-96" title={`${tk.title} — ${tr('supportReport.openTicket')}`}>
                           <span className="font-mono">{tk.ticketNumber}</span>
                           {/* Antes del título: en el PDF el título se corta con "…" y la marca no debe perderse. */}
                           {tk.isWarranty && (

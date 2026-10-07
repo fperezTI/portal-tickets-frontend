@@ -225,6 +225,7 @@
     "contractedHours": "Contracted hours",
     "consumedHours": "Consumed hours",
     "availableHours": "Available hours",
+    "openTicket": "Click to open the ticket",
     "loadError": "Error loading policies",
     "byCustomer": "Policies by customer",
     "forYourAccount": "Policies linked to your account",

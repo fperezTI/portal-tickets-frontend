@@ -225,6 +225,7 @@
     "contractedHours": "Horas contratadas",
     "consumedHours": "Horas consumidas",
     "availableHours": "Horas disponibles",
+    "openTicket": "Clic para abrir el ticket",
     "loadError": "Error al cargar las pólizas",
     "byCustomer": "Pólizas por cliente",
     "forYourAccount": "Pólizas asociadas a tu cuenta",

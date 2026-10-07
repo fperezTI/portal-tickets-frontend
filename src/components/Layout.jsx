@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ClipboardList, ShieldCheck, BarChart3, Gauge, KeyRound,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ShieldCheck, BarChart3, Gauge, KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
@@ -30,8 +30,9 @@ const NAV_ITEMS = [
 
 // Sección aparte, en la parte inferior de la barra (arriba del widget de
 // tickets activos), separada del menú principal.
+// "Tareas" (/admin/tasks) se quitó del menú (pedido del usuario, 2026-10-07);
+// la ruta sigue existiendo para admin por URL directa.
 const BOTTOM_NAV_ITEMS = [
-  { to: '/admin/tasks',               icon: ClipboardList, labelKey: 'nav.tasks',              roles: ['admin'], end: true },
   { to: '/admin/general-consumption', icon: Gauge,          labelKey: 'nav.generalConsumption', roles: ['admin'], end: true },
   { to: '/admin/users',               icon: Users,          labelKey: 'nav.users',              roles: ['admin'], end: true },
 ];
