@@ -284,20 +284,24 @@ const SupportReportPage = () => {
   })();
 
   // Subtítulo: periodo completo, rango consecutivo ("Jul 2026 – Sep 2026") o
-  // lista de meses sueltos ("Jul, Sep 2026").
-  const selectionLabel = (() => {
+  // lista de meses sueltos ("Jul, Sep 2026"). `tx` = textos del idioma deseado:
+  // la hoja/PDF/Excel usan el idioma del reporte; las tarjetas de pantalla, el
+  // de la interfaz (para no mezclar idiomas, 2026-10-07).
+  const buildSelectionLabel = (tx) => {
     if (!report) return '';
-    if (!isSubset) return periodLabel(t, report.period);
+    if (!isSubset) return periodLabel(tx, report.period);
     const idx = selMonths.map((m) => periodMonths.indexOf(m));
     const consecutive = idx.every((v, i) => i === 0 || v === idx[i - 1] + 1);
-    const full = (m) => `${monthLabel(t, m, false)} ${m.slice(0, 4)}`;
+    const full = (m) => `${monthLabel(tx, m, false)} ${m.slice(0, 4)}`;
     if (selMonths.length === 1) return full(selMonths[0]);
     if (consecutive) return `${full(selMonths[0])} – ${full(selMonths.at(-1))}`;
     const years = [...new Set(selMonths.map((m) => m.slice(0, 4)))];
     return years.length === 1
-      ? `${selMonths.map((m) => monthLabel(t, m, false)).join(', ')} ${years[0]}`
+      ? `${selMonths.map((m) => monthLabel(tx, m, false)).join(', ')} ${years[0]}`
       : selMonths.map((m) => full(m)).join(', ');
-  })();
+  };
+  const selectionLabel = buildSelectionLabel(t);
+  const uiSelectionLabel = buildSelectionLabel(uiSheet);
 
   // Excel "Support's Tickets": tickets de los meses elegidos, encabezados en el idioma del reporte.
   const [excelBusy, setExcelBusy] = useState(false);
@@ -374,9 +378,12 @@ const SupportReportPage = () => {
 
             {report && (
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="gap-2" disabled={excelBusy || selMonths.length === 0} onClick={onExportExcel}>
-                  <FileSpreadsheet className="h-4 w-4" /> {excelBusy ? tr('supportReport.generating') : tr('supportReport.exportExcel')}
-                </Button>
+                {/* Exportar a Excel: solo admin (pedido del usuario, 2026-10-07). */}
+                {user?.role === 'admin' && (
+                  <Button variant="outline" size="sm" className="gap-2" disabled={excelBusy || selMonths.length === 0} onClick={onExportExcel}>
+                    <FileSpreadsheet className="h-4 w-4" /> {excelBusy ? tr('supportReport.generating') : tr('supportReport.exportExcel')}
+                  </Button>
+                )}
                 <Button size="sm" className="gap-2" onClick={onPrint}>
                   <Printer className="h-4 w-4" /> {tr('supportReport.print')}
                 </Button>
@@ -450,7 +457,7 @@ const SupportReportPage = () => {
         {report && (
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <SummaryCard icon={Clock} value={fmt2(summary.consumedHours)}
-              label={tr('consumption.billableHoursYear', { year: !isSubset && !crossesYear ? report.year : selectionLabel })}
+              label={tr('consumption.billableHoursYear', { year: !isSubset && !crossesYear ? report.year : uiSelectionLabel })}
               iconBg="bg-primary/10" iconColor="text-primary" valueColor="text-primary" />
             <SummaryCard icon={Ticket} value={allVisibleTickets.length}
               label={tr('consumption.ticketsWithConsumption')}

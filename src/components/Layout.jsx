@@ -23,7 +23,6 @@ const NAV_ITEMS = [
   { to: '/cases/mine',   icon: ListChecks,      labelKey: 'nav.myTickets',     roles: ['client'], end: true },
   { to: '/cases/active', icon: CircleDot,       labelKey: 'nav.activeTickets', roles: ['admin', 'support', 'client'] },
   { to: '/cases',        icon: Ticket,          labelKey: 'nav.tickets',       roles: ['admin', 'support', 'client'], end: true },
-  { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.myPolicies',    roles: ['client'], end: true },
   { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.policies',      roles: ['admin', 'support'], end: true },
   // "Consumo" abre el Reporte de soporte (SupportReportPage) desde 2026-10-06.
   { to: '/consumption',  icon: BarChart3,       labelKey: 'nav.consumption',   roles: ['admin', 'support', 'client'], end: true },
