@@ -310,21 +310,11 @@
     }
   },
   "consumption": {
-    "loadError": "Error loading consumption",
-    "subtitle": "Hours applied per ticket, broken down by month",
-    "allMonths": "All months",
     "billableHoursYear": "Billable hours {{year}}",
-    "billableHoursMonth": "Billable hours {{month}}",
     "ticketsWithConsumption": "Tickets with consumption",
     "warrantyHours": "Warranty hours",
     "avgHoursPerTicket": "Avg h / ticket",
-    "availableHoursActivePolicy": "Available hours (active policy)",
-    "selectClientBody": "Choose a customer above to see their billable hours consumption.",
-    "noConsumption": "No billable hours consumption recorded in {{period}}.",
-    "total": "Total",
-    "warrantyRowTitle": "Warranty ticket — does not count as billable hours (double-click to open)",
-    "doubleClickToOpen": "Double-click to open the ticket",
-    "warrantyHoursCellTitle": "Warranty hours — not billed and not added to the total"
+    "total": "Total"
   },
   "usersPage": {
     "roleAdmin": "Admin",
@@ -361,7 +351,6 @@
     "title": "User Management",
     "subtitle": "Create and link portal users to Dynamics 365 contacts",
     "newUser": "New User",
-    "searchPlaceholder": "Search by name or email…",
     "allRoles": "All roles",
     "userCount_one": "{{count}}{{plus}} user",
     "userCount_other": "{{count}}{{plus}} users",
@@ -447,5 +436,81 @@
     "needsUppercase": "Must include at least one uppercase letter",
     "needsNumber": "Must include at least one number",
     "mismatch": "Passwords do not match"
+  },
+  "supportReport": {
+    "title": "Consumption",
+    "customer": "Customer",
+    "loadingCustomers": "Loading customers…",
+    "selectCustomerOption": "— Select a customer ({{count}} with activity) —",
+    "year": "Year",
+    "groupBy": "Group tickets by",
+    "groupStatus": "Status",
+    "groupCustomerUser": "Customer user",
+    "reportLanguage": "Report language",
+    "spanish": "Spanish",
+    "english": "English",
+    "exportExcel": "Export to Excel",
+    "generating": "Generating…",
+    "print": "Print / PDF",
+    "reportMonths": "Report months",
+    "allMonths": "All",
+    "monthsWithActivity": "With activity",
+    "selectCustomerBody": "Select a customer to see their report.",
+    "customersLoadError": "Could not load the customer list.",
+    "loadError": "Could not load the report.",
+    "excelError": "Could not generate the Excel file.",
+    "availableHours": "Available hours",
+    "cierrePending": "\"Cierre\" customer: hours are grouped in each ticket's closing month. {{tickets}} open tickets or tickets without a closing date with tasks in {{year}} are not shown ({{hours}} h worked, {{billable}} h billable): they will appear in the month they close. This notice is not printed.",
+    "outOfPolicy": "{{count}} tasks ({{hours}} h worked, {{billable}} h billable) from {{year}} were left out because their date falls outside the term of the active policies. This notice is not printed."
+  },
+  "loading": {
+    "title": "Processing information",
+    "dashboard": [
+      "Retrieving information from Dynamics 365…",
+      "Counting active tickets by priority…",
+      "Reviewing tickets closed in the period…",
+      "Calculating service indicators…",
+      "Preparing the summary; this may take a few seconds…"
+    ],
+    "generalConsumption": [
+      "Retrieving information from Dynamics 365…",
+      "Adding up hours worked across all customers…",
+      "Calculating billable hours by month…",
+      "Applying the rules for closing-based customers…",
+      "Separating warranty and rework hours…",
+      "Calculating the trend and forecast…",
+      "Processing a high volume of information, thank you for your patience…"
+    ],
+    "policies": [
+      "Retrieving information from Dynamics 365…",
+      "Retrieving the customer's policies…",
+      "Adding up contracted hours for each policy…",
+      "Calculating used hours…",
+      "Preparing the policy summary; this may take a few seconds…"
+    ],
+    "policyHours": [
+      "Retrieving information from Dynamics 365…",
+      "Retrieving the year's support records…",
+      "Grouping contracted hours by customer and month…",
+      "Preparing the hours table; this may take a few seconds…"
+    ],
+    "policyDetail": [
+      "Retrieving information from Dynamics 365…",
+      "Retrieving the policy detail…",
+      "Reviewing the support records…",
+      "Calculating the hours balance…",
+      "Preparing the detail; this may take a few seconds…"
+    ],
+    "supportReport": [
+      "Retrieving information from Dynamics 365…",
+      "Retrieving the customer's active policies…",
+      "Calculating contracted hours by month…",
+      "Adding up hours worked and used per ticket…",
+      "Reconciling used hours against the policy…",
+      "Grouping tickets by status and module…",
+      "Calculating the available balance…",
+      "Preparing the report; this may take a few seconds…",
+      "Processing a high volume of tickets, thank you for your patience…"
+    ]
   }
 }

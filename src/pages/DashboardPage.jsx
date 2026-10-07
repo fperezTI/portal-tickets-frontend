@@ -9,6 +9,7 @@ import {
   Ticket, AlertTriangle, Clock, CheckCircle2, Inbox, BarChart2, TrendingUp, Flame, Layers, ShieldCheck,
 } from 'lucide-react';
 import { fmtHours } from '@/lib/utils';
+import { LoadingOverlay } from '../components/LoadingMessages';
 
 // ─── Colores de etapa (por prefijo numérico en el nombre) ─────────────────────
 const STAGE_PALETTE = ['#94A3B8', '#0EA5E9', '#EAB308', '#F97316', '#22C55E', '#1E3A8A'];
@@ -181,14 +182,14 @@ const LineChart = ({ data, series }) => {
 
 // ─── Skeletons de carga ───────────────────────────────────────────────────────
 const DashboardSkeleton = () => (
-  <div className="space-y-6">
+  <LoadingOverlay set="dashboard" className="space-y-6">
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       {Array.from({ length: 5 }).map((_, i) => (
         <Card key={i}><CardContent className="p-5"><Skeleton className="h-20 w-full" /></CardContent></Card>
       ))}
     </div>
     <Card><CardContent className="p-6"><Skeleton className="h-52 w-full" /></CardContent></Card>
-  </div>
+  </LoadingOverlay>
 );
 
 // ─── Página ───────────────────────────────────────────────────────────────────

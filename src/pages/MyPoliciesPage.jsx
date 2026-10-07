@@ -15,6 +15,7 @@ import {
 import { RefreshCw, ShieldOff, Users, CalendarRange, ChevronDown, ChevronRight } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import { fmtHours } from '@/lib/utils';
+import { LoadingOverlay } from '../components/LoadingMessages';
 
 // Orden preferido de los grupos de Tipo de Soporte en el panel de horas por
 // cliente y mes; cualquier tipo no listado (o sin tipo asignado) cae al final.
@@ -229,9 +230,9 @@ const PolicyHoursByMonthPanel = () => {
         )}
 
         {loading && (
-          <div className="p-6 space-y-3">
+          <LoadingOverlay set="policyHours" className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-          </div>
+          </LoadingOverlay>
         )}
 
         {!loading && !error && rows.length === 0 && (
@@ -403,9 +404,9 @@ const MyPoliciesPage = () => {
           {isStaff && !hasCustomer && <SelectClientState />}
 
           {loading && policies.length === 0 && (
-            <div className="p-6 space-y-3">
+            <LoadingOverlay set="policies" className="p-6 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
+            </LoadingOverlay>
           )}
 
           {!loading && hasCustomer && policies.length === 0 && !error && (

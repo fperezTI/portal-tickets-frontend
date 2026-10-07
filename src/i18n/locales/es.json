@@ -310,21 +310,11 @@
     }
   },
   "consumption": {
-    "loadError": "Error al cargar el consumo",
-    "subtitle": "Horas aplicadas por ticket, desglosadas por mes",
-    "allMonths": "Todos los meses",
     "billableHoursYear": "Horas facturables {{year}}",
-    "billableHoursMonth": "Horas facturables {{month}}",
     "ticketsWithConsumption": "Tickets con consumo",
     "warrantyHours": "Horas de garantía",
     "avgHoursPerTicket": "Promedio h / ticket",
-    "availableHoursActivePolicy": "Horas disponibles (póliza activa)",
-    "selectClientBody": "Elige un cliente arriba para ver su consumo de horas billables.",
-    "noConsumption": "No hay consumo de horas billables registrado en {{period}}.",
-    "total": "Total",
-    "warrantyRowTitle": "Ticket de garantía — no cuenta como horas billables (doble clic para abrir)",
-    "doubleClickToOpen": "Doble clic para abrir el ticket",
-    "warrantyHoursCellTitle": "Horas de garantía — no se facturan ni suman al total"
+    "total": "Total"
   },
   "usersPage": {
     "roleAdmin": "Admin",
@@ -361,7 +351,6 @@
     "title": "Gestión de Usuarios",
     "subtitle": "Crea y vincula usuarios del portal a contactos de Dynamics 365",
     "newUser": "Nuevo Usuario",
-    "searchPlaceholder": "Buscar por nombre o email…",
     "allRoles": "Todos los roles",
     "userCount_one": "{{count}}{{plus}} usuario",
     "userCount_other": "{{count}}{{plus}} usuarios",
@@ -447,5 +436,81 @@
     "needsUppercase": "Debe tener al menos una mayúscula",
     "needsNumber": "Debe tener al menos un número",
     "mismatch": "Las contraseñas no coinciden"
+  },
+  "supportReport": {
+    "title": "Consumo",
+    "customer": "Cliente",
+    "loadingCustomers": "Cargando clientes…",
+    "selectCustomerOption": "— Selecciona un cliente ({{count}} con actividad) —",
+    "year": "Año",
+    "groupBy": "Agrupar tickets por",
+    "groupStatus": "Estatus",
+    "groupCustomerUser": "Customer user",
+    "reportLanguage": "Idioma del reporte",
+    "spanish": "Español",
+    "english": "Inglés",
+    "exportExcel": "Exportar a Excel",
+    "generating": "Generando…",
+    "print": "Imprimir / PDF",
+    "reportMonths": "Meses del reporte",
+    "allMonths": "Todos",
+    "monthsWithActivity": "Con actividad",
+    "selectCustomerBody": "Selecciona un cliente para ver su reporte.",
+    "customersLoadError": "No se pudo cargar la lista de clientes.",
+    "loadError": "No se pudo cargar el reporte.",
+    "excelError": "No se pudo generar el Excel.",
+    "availableHours": "Horas disponibles",
+    "cierrePending": "Cliente de tipo Cierre: las horas se agrupan en el mes de cierre de cada ticket. No se muestran {{tickets}} tickets abiertos o sin fecha de cierre con tareas en {{year}} ({{hours}} h trabajadas, {{billable}} h billable): aparecerán en el mes en que cierren. Este aviso no sale en el PDF.",
+    "outOfPolicy": "Se omitieron {{count}} tareas ({{hours}} h trabajadas, {{billable}} h billable) de {{year}} porque su fecha cae fuera de la vigencia de las pólizas activas. Este aviso no sale en el PDF."
+  },
+  "loading": {
+    "title": "Procesando información",
+    "dashboard": [
+      "Consultando la información en Dynamics 365…",
+      "Contando los tickets activos por prioridad…",
+      "Revisando los tickets cerrados del periodo…",
+      "Calculando los indicadores de servicio…",
+      "Preparando el resumen, esto puede tardar unos segundos…"
+    ],
+    "generalConsumption": [
+      "Consultando la información en Dynamics 365…",
+      "Sumando las horas trabajadas de todos los clientes…",
+      "Calculando las horas facturables por mes…",
+      "Aplicando las reglas de los clientes con cierre…",
+      "Separando las horas de garantía y retrabajo…",
+      "Calculando la tendencia y el pronóstico…",
+      "Procesando un volumen alto de información, gracias por su paciencia…"
+    ],
+    "policies": [
+      "Consultando la información en Dynamics 365…",
+      "Obteniendo las pólizas del cliente…",
+      "Sumando las horas contratadas de cada póliza…",
+      "Calculando las horas consumidas…",
+      "Preparando el resumen de pólizas, esto puede tardar unos segundos…"
+    ],
+    "policyHours": [
+      "Consultando la información en Dynamics 365…",
+      "Obteniendo los registros de soporte del año…",
+      "Agrupando las horas contratadas por cliente y mes…",
+      "Preparando la tabla de horas, esto puede tardar unos segundos…"
+    ],
+    "policyDetail": [
+      "Consultando la información en Dynamics 365…",
+      "Obteniendo el detalle de la póliza…",
+      "Revisando los registros de soporte…",
+      "Calculando el saldo de horas…",
+      "Preparando el detalle, esto puede tardar unos segundos…"
+    ],
+    "supportReport": [
+      "Consultando la información en Dynamics 365…",
+      "Obteniendo las pólizas vigentes del cliente…",
+      "Calculando las horas contratadas por mes…",
+      "Sumando las horas trabajadas y consumidas por ticket…",
+      "Conciliando las horas consumidas contra la póliza…",
+      "Agrupando los tickets por estatus y módulo…",
+      "Calculando el saldo disponible…",
+      "Preparando el reporte, esto puede tardar unos segundos…",
+      "Procesando un volumen alto de tickets, gracias por su paciencia…"
+    ]
   }
 }

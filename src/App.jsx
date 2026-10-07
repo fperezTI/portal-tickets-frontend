@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,10 +18,17 @@ const NewCasePage            = lazy(() => import('./pages/NewCasePage'));
 const MyTicketsPage          = lazy(() => import('./pages/MyTicketsPage'));
 const MyPoliciesPage         = lazy(() => import('./pages/MyPoliciesPage'));
 const PolicyDetailPage       = lazy(() => import('./pages/PolicyDetailPage'));
-const ConsumptionPage        = lazy(() => import('./pages/ConsumptionPage'));
+const SupportReportPage      = lazy(() => import('./pages/SupportReportPage'));
 const UsersPage              = lazy(() => import('./pages/admin/UsersPage'));
 const TasksPage              = lazy(() => import('./pages/admin/TasksPage'));
 const GeneralConsumptionPage = lazy(() => import('./pages/admin/GeneralConsumptionPage'));
+
+// /support-report fue la ruta original del reporte; redirige a /consumption
+// conservando los filtros de la URL (?client=&year=) para no romper enlaces.
+const SupportReportRedirect = () => {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: '/consumption', search }} replace />;
+};
 
 const RouteLoading = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -47,7 +54,9 @@ function App() {
                 <Route path="/cases/mine"   element={<MyTicketsPage />} />
                 <Route path="/policies/mine" element={<MyPoliciesPage />} />
                 <Route path="/policies/:id"  element={<PolicyDetailPage />} />
-                <Route path="/consumption"  element={<ConsumptionPage />} />
+                {/* "Consumo" = Reporte de soporte (2026-10-06, reemplazó a la ConsumptionPage anterior). */}
+                <Route path="/consumption"  element={<SupportReportPage />} />
+                <Route path="/support-report" element={<SupportReportRedirect />} />
                 <Route path="/cases/:id"    element={<CaseDetailPage />} />
 
                 {/* Rutas de administración */}

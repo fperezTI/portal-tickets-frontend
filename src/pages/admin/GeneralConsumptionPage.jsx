@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Gauge, Clock, DollarSign, ShieldCheck, RotateCcw, PlusCircle, CheckCircle2, TrendingUp, TrendingDown, Minus, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { fmtHours as fmtHoursShared, cn } from '@/lib/utils';
+import { LoadingOverlay } from '../../components/LoadingMessages';
 
 // El backend devuelve `label` ya formateado en español (server-side, para el
 // caso de que se consuma desde otro cliente) — para la UI se recalcula en el
@@ -287,14 +288,14 @@ const GeneralConsumptionPage = () => {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <LoadingOverlay set="generalConsumption" className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="lg:col-span-2"><CardContent className="p-5"><Skeleton className="h-40 w-full" /></CardContent></Card>
           <div className="grid grid-cols-1 gap-4 content-start">
             {Array.from({ length: 2 }).map((_, i) => (
               <Card key={i}><CardContent className="p-5"><Skeleton className="h-16 w-full" /></CardContent></Card>
             ))}
           </div>
-        </div>
+        </LoadingOverlay>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Resumen ejecutivo de horas: total trabajado como ancla, y el

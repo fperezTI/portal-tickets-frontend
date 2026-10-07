@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { fmtHours, cn } from '@/lib/utils';
+import { LoadingOverlay } from '../components/LoadingMessages';
 
 // ─── Badge de estado ───────────────────────────────────────────────────────────
 const StatusBadge = ({ statecode }) => {
@@ -452,11 +453,11 @@ const PolicyDetailPage = () => {
   };
 
   if (loading) return (
-    <div className="space-y-4">
+    <LoadingOverlay set="policyDetail" className="space-y-4">
       <Skeleton className="h-8 w-64" />
       <Skeleton className="h-40 w-full" />
       <Skeleton className="h-64 w-full" />
-    </div>
+    </LoadingOverlay>
   );
 
   if (error) return (

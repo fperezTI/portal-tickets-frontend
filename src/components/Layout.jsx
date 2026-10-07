@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { to: '/cases',        icon: Ticket,          labelKey: 'nav.tickets',       roles: ['admin', 'support', 'client'], end: true },
   { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.myPolicies',    roles: ['client'], end: true },
   { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.policies',      roles: ['admin', 'support'], end: true },
+  // "Consumo" abre el Reporte de soporte (SupportReportPage) desde 2026-10-06.
   { to: '/consumption',  icon: BarChart3,       labelKey: 'nav.consumption',   roles: ['admin', 'support', 'client'], end: true },
 ];
 
@@ -67,11 +68,11 @@ const Layout = () => {
   const visibleBottomNav = BOTTOM_NAV_ITEMS.filter((i) => i.roles.includes(user?.role));
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background print:block print:min-h-0 print:bg-white">
 
       {/* ── Sidebar izquierda ─────────────────────────────────── */}
       <aside
-        className="shrink-0 sticky top-0 h-screen flex flex-col overflow-hidden"
+        className="shrink-0 sticky top-0 h-screen flex flex-col overflow-hidden print:hidden"
         style={{
           width: collapsed ? 56 : 220,
           transition: 'width 280ms cubic-bezier(0.4,0,0.2,1)',
@@ -311,11 +312,11 @@ const Layout = () => {
       <ChangePasswordDialog open={showChangePassword} onClose={() => setShowChangePassword(false)} />
 
       {/* ── Contenido principal ────────────────────────────────── */}
-      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden print:block print:overflow-visible">
 
         {/* Barra superior con logo */}
         <header
-          className="shrink-0 flex items-center justify-end gap-4 px-8 border-b"
+          className="shrink-0 flex items-center justify-end gap-4 px-8 border-b print:hidden"
           style={{
             height: 56,
             background: 'oklch(1 0 0)',
@@ -335,7 +336,7 @@ const Layout = () => {
         </header>
 
         {/* Área de contenido con scroll */}
-        <div className="flex-1 min-h-0 overflow-auto px-8 py-6">
+        <div className="flex-1 min-h-0 overflow-auto px-8 py-6 print:overflow-visible print:p-0">
           <Outlet />
         </div>
       </main>
