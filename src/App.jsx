@@ -43,6 +43,8 @@ function App() {
         <Suspense fallback={<RouteLoading />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            {/* Login de Satustec (2026-10-10): mismo login con colores de Satustec, siempre en inglés. */}
+            <Route path="/loginst" element={<LoginPage brand="satustec" />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>

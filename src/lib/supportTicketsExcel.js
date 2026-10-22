@@ -35,7 +35,9 @@ const TEXT = {
 const WIDTHS = [7, 18, 45, 10, 11, 10, 26, 26, 12, 12, 9, 9, 9, 10, 60, 60];
 const NUM_COLS = [11, 12, 13]; // Hours, Billable, Diff (1-based)
 const DATE_COLS = [9, 10];
-const NAVY = 'FF0B3A6E';
+// Color de encabezados = marca de la empresa DEL CLIENTE (headerColor, ARGB);
+// default el azul de Grupo Staff de siempre.
+const DEFAULT_HEADER = 'FF0B3A6E';
 const STRIPE = 'FFE8EEF7';
 
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -52,7 +54,8 @@ export const buildSupportTicketRows = (report, months) => report.statuses
   .filter((r) => r.hours > 0 || r.billable > 0)
   .sort((a, b) => (a.tk.ticketNumber || '').localeCompare(b.tk.ticketNumber || ''));
 
-export const exportSupportTicketsExcel = async ({ report, months, monthsLabel, lang }) => {
+export const exportSupportTicketsExcel = async ({ report, months, monthsLabel, lang, headerColor = DEFAULT_HEADER }) => {
+  const NAVY = headerColor;
   const { default: ExcelJS } = await import('exceljs');
   const t = TEXT[lang] ?? TEXT.es;
   const tr = (v) => (v == null ? '' : t.values[v] ?? v);

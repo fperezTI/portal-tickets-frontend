@@ -50,8 +50,25 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root {
+/* ── Marcas (multi-empresa Grupo Staff / Satustec, 2026-10-07) ─────────────
+   Grupo Staff es el tema por default (:root) — sus valores NO cambiaron. El
+   mismo bloque responde también a [data-brand="grupostaff"] para poder
+   reaplicarlo dentro de una sección (p. ej. la hoja del reporte de un cliente
+   Grupo Staff vista por un usuario Satustec). Satustec sobreescribe abajo con
+   [data-brand="satustec"]. AuthContext pone data-brand en <html> según
+   user.company; sin sesión (login) no hay data-brand. Tokens --brand-*:
+   navy (fondo del menú), navy-deep (final del degradado), accent (menú activo,
+   detalles), accent-soft/-line (fondos y bordes suaves del acento). Mismos
+   colores en JS: src/lib/brand.js. */
+:root,
+[data-brand="grupostaff"] {
   --radius: 0.625rem;
+
+  --brand-navy:        oklch(0.25 0.085 258);
+  --brand-navy-deep:   oklch(0.19 0.065 258);
+  --brand-accent:      oklch(0.68 0.11 208);
+  --brand-accent-soft: oklch(0.68 0.11 208 / 0.14);
+  --brand-accent-line: oklch(0.68 0.11 208 / 0.22);
 
   /* ── Grupo Staff brand colors ─────────────────────────── */
   /* Navy oscuro del logotipo: #1B3860 */
@@ -98,6 +115,52 @@
   --good-bg:              oklch(0.56 0.14 155 / 0.14);
 }
 
+/* ── Satustec (branding: azul marino #121A2E, rojo #FF3131) ──────────────────
+   Decisión del usuario: el rojo de marca va en el menú activo y en los botones
+   principales. --primary es el AZUL MARINO (cifras, íconos y bordes "primary"
+   del portal: en rojo se leían como alerta) y los botones se pintan de rojo con
+   la regla de abajo. Para no confundir el rojo de marca con un error,
+   --destructive queda en un rojo más oscuro (y los errores siempre llevan
+   texto/ícono). Tipografía: la misma del portal (decisión del usuario). */
+[data-brand="satustec"] {
+  --brand-navy:        #121A2E;
+  --brand-navy-deep:   #0A0F1D;
+  --brand-accent:      #FF3131;
+  --brand-accent-soft: rgb(255 49 49 / 0.14);
+  --brand-accent-line: rgb(255 49 49 / 0.26);
+
+  --background:           #F5F6F8;
+  --foreground:           #121A2E;
+  --card:                 #FFFFFF;
+  --card-foreground:      #121A2E;
+  --popover:              #FFFFFF;
+  --popover-foreground:   #121A2E;
+  --primary:              #121A2E;
+  --primary-foreground:   #FFFFFF;
+  --secondary:            #E8E9ED;
+  --secondary-foreground: #121A2E;
+  --muted:                #F0F1F4;
+  --muted-foreground:     #5D6372;
+  --accent:               #ECEDF1;
+  --accent-foreground:    #121A2E;
+  --destructive:          oklch(0.48 0.19 25);
+  --border:               #DDDFE4;
+  --input:                #DDDFE4;
+  --ring:                 #FF3131;
+}
+
+/* Satustec: botones principales en rojo de marca (el resto de "primary" es
+   azul marino). Incluye el hover, que el botón base calcula sobre --primary. */
+[data-brand="satustec"] button.bg-primary,
+[data-brand="satustec"] a.bg-primary {
+  background-color: #FF3131;
+  color: #FFFFFF;
+}
+[data-brand="satustec"] button.bg-primary:hover:not(:disabled),
+[data-brand="satustec"] a.bg-primary:hover {
+  background-color: #E62B2B;
+}
+
 .dark {
   --background:           oklch(0.145 0.03 258);
   --foreground:           oklch(0.97 0.01 254);
@@ -137,6 +200,16 @@ body {
 .gs-nav-inactive:hover {
   color: white;
   background: oklch(0.68 0.11 208 / 0.28);
+}
+/* Satustec: opciones inactivas en blanco tenue (no cyan); el rojo queda solo
+   para la opción activa. */
+[data-brand="satustec"] .gs-nav-inactive {
+  color: rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.06);
+}
+[data-brand="satustec"] .gs-nav-inactive:hover {
+  color: white;
+  background: rgb(255 49 49 / 0.22);
 }
 
 /* Scrollbar subtle */

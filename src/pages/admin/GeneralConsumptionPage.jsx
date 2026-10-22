@@ -15,6 +15,8 @@ import {
 import { Gauge, Clock, DollarSign, ShieldCheck, RotateCcw, PlusCircle, CheckCircle2, TrendingUp, TrendingDown, Minus, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { fmtHours as fmtHoursShared, cn } from '@/lib/utils';
 import { LoadingOverlay } from '../../components/LoadingMessages';
+import { useAuth } from '../../context/AuthContext';
+import { getBrand } from '@/lib/brand';
 
 // El backend devuelve `label` ya formateado en español (server-side, para el
 // caso de que se consuma desde otro cliente) — para la UI se recalcula en el
@@ -30,8 +32,9 @@ const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 // Paleta de marca Grupo Staff (ver src/index.css): navy del logotipo, cyan y
 // naranja del asterisco — usados aquí como acento de datos, no vía tokens
 // genéricos de Tailwind, para que se lean como "de marca" en un reporte.
-const BRAND_NAVY   = '#1B3860';
-const BRAND_CYAN    = '#00B4CC';
+// Navy y cyan vienen de la marca del usuario (Grupo Staff / Satustec,
+// src/lib/brand.js) dentro del componente; el naranja es de advertencia
+// (retrabajo/improductivas) y es igual para ambas marcas.
 const BRAND_ORANGE = '#F47920';
 
 const pct = (part, total) => (total > 0 ? Math.round((part / total) * 1000) / 10 : 0);
@@ -166,6 +169,8 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
 const GeneralConsumptionPage = () => {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
+  const { user } = useAuth();
+  const { navy: BRAND_NAVY, accent: BRAND_CYAN } = getBrand(user?.company).colors;
   const [searchParams, setSearchParams] = useSearchParams();
   const year = parseInt(searchParams.get('year') || String(CURRENT_YEAR));
   const setYear = (y) => setSearchParams((prev) => {

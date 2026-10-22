@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getDashboard } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
+import { getBrand } from '@/lib/brand';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -63,7 +64,7 @@ const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 't
 );
 
 // ─── Gráfica de líneas mensual (genérica, 1+ series) ──────────────────────────
-const CYAN   = '#00B4CC';
+// Acento de la serie "creados": color de la marca del usuario (ver DashboardPage).
 const GREEN  = '#16A34A';
 const INDIGO = '#6366F1';
 
@@ -196,6 +197,8 @@ const DashboardSkeleton = () => (
 const DashboardPage = () => {
   const { t } = useTranslation();
   const { user, customerLabel: resolvedCustomerLabel } = useAuth();
+  // Cyan de Grupo Staff / rojo de Satustec (src/lib/brand.js).
+  const CYAN = getBrand(user?.company).colors.accent;
   const isStaff = STAFF_ROLES.includes(user?.role);
   // Mientras AuthContext resuelve el nombre real (cuenta/contacto), se
   // muestra el nombre/email del usuario para no dejar el título en blanco.

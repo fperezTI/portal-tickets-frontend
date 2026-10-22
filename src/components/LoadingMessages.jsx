@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getBrand } from '@/lib/brand';
+import { useAuth } from '../context/AuthContext';
 
 // Tarjeta "Procesando información" con mensajes formales que rotan en orden
 // aleatorio cada 3 s, sin repetir el mismo dos veces seguidas (port de
 // portal-auditoria-frontend). `set` = juego de mensajes de la ventana en el
 // i18n (`loading.<set>`: dashboard, consumption, generalConsumption, policies,
 // policyHours, policyDetail, supportReport). Solo en las ventanas que tardan;
-// las rápidas siguen solo con sus Skeleton.
-const NAVY = '#0B3A6E';
+// las rápidas siguen solo con sus Skeleton. Color = marca del usuario
+// (Grupo Staff #0B3A6E de siempre / Satustec #121A2E, ver src/lib/brand.js).
 const ROTATE_MS = 3000;
 
 const randomIndex = (len, prev) => {
@@ -20,6 +22,8 @@ const randomIndex = (len, prev) => {
 
 export const LoadingCard = ({ set, className }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const NAVY = getBrand(user?.company).colors.loading;
   const messages = t(`loading.${set}`, { returnObjects: true });
   const [idx, setIdx] = useState(() => randomIndex(messages.length, -1));
   useEffect(() => {

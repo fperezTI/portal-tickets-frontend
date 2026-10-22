@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import i18n from '../i18n';
+import i18n, { rememberLanguage, getRememberedLanguage } from '../i18n';
 import { login as apiLogin, logout as apiLogout } from '../api/auth';
 import { resolveAccount, resolveContact } from '../api/d365';
 import { setAccessToken, clearAccessToken } from '../utils/tokenStore';
+import { getBrand, rememberCompany, setTab } from '@/lib/brand';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -43,10 +44,38 @@ export const AuthProvider = ({ children }) => {
 
   // El idioma de la interfaz es el que el admin le asignó al usuario
   // (campo Idioma en Usuarios) — se aplica en cuanto se conoce la sesión,
-  // tanto al restaurarla al montar como al hacer login.
+  // tanto al restaurarla al montar como al hacer login. Además se RECUERDA en
+  // este navegador (decisión del usuario): el login sale en el idioma del
+  // último usuario que entró (también al cerrar sesión). Sin sesión ni idioma
+  // recordado → español.
   useEffect(() => {
-    i18n.changeLanguage(user?.language || 'es');
-  }, [user?.language]);
+    if (isLoading) return;
+    if (user?.language) {
+      rememberLanguage(user.language);
+      i18n.changeLanguage(user.language);
+    } else {
+      i18n.changeLanguage(getRememberedLanguage());
+    }
+  }, [user?.language, isLoading]);
+
+  // Marca del portal (Grupo Staff / Satustec) según user.company: atributo
+  // data-brand en <html> (variables CSS de src/index.css), título e ícono de la
+  // pestaña. La empresa además se RECUERDA en el navegador para mandar a quien
+  // se quede sin sesión a su login (/login o /loginst, ver getLoginPath).
+  // Sin sesión → sin data-brand; la pestaña la pone cada pantalla de login
+  // (la de Grupo Staff o la de Satustec).
+  useEffect(() => {
+    if (isLoading) return;
+    const root = document.documentElement;
+    if (user) {
+      const brand = getBrand(user.company);
+      rememberCompany(brand.key);
+      root.dataset.brand = brand.key;
+      setTab(brand.documentTitle[user.language] || brand.documentTitle.es, brand.favicon);
+    } else {
+      delete root.dataset.brand;
+    }
+  }, [user, isLoading]);
 
   // Nombre del cliente (cuenta o contacto) a mostrar en la UI — se resuelve UNA
   // sola vez acá (al hacer login o al restaurar sesión), no en cada página que

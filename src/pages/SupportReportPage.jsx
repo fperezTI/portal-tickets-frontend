@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { SHEET_TEXT, STAGE_EN, MODULE_EN } from '@/lib/supportReportI18n';
 import { LoadingCard } from '../components/LoadingMessages';
 import { exportSupportTicketsExcel } from '@/lib/supportTicketsExcel';
+import BrandLogo from '../components/BrandLogo';
+import { getBrand } from '@/lib/brand';
 
 // Reporte de soporte por cliente — port del Portal de auditoría (réplica del
 // indicador "Soporte" de Power BI del usuario, para imprimirse a PDF). Reglas
@@ -324,7 +326,7 @@ const SupportReportPage = () => {
     setExcelBusy(true);
     setExcelError('');
     try {
-      await exportSupportTicketsExcel({ report, months: selMonths, monthsLabel: selectionLabel, lang });
+      await exportSupportTicketsExcel({ report, months: selMonths, monthsLabel: selectionLabel, lang, headerColor: getBrand(report.customer.company).colors.excelHeader });
     } catch {
       setExcelError(tr('supportReport.excelError'));
     } finally {
@@ -492,10 +494,12 @@ const SupportReportPage = () => {
       </div>
 
       {report && (
-        <div className="support-sheet bg-card border rounded-xl p-6 space-y-5">
+        // data-brand = empresa DEL CLIENTE (no la del usuario): la hoja que recibe
+        // el cliente siempre lleva la marca que lo atiende (decisión 2026-10-07).
+        <div data-brand={report.customer.company || 'grupostaff'} className="support-sheet bg-card border rounded-xl p-6 space-y-5">
           {/* Encabezado — sin logo del cliente (decisión del usuario): su nombre va a la derecha. */}
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <img src="/LOGO%20GS%20Color_240x54.png" alt="Grupo Staff" className="h-14 object-contain justify-self-start" />
+            <BrandLogo brand={report.customer.company} variant="report" className="h-14 justify-self-start" />
             <div className="text-center">
               <h2 className="text-2xl font-bold">{t.title}</h2>
               <p className="text-sm font-medium">{report.customer.name} · {selectionLabel}</p>

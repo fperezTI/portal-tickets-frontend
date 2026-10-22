@@ -11,16 +11,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ListChecks, ShieldCheck, BarChart3, Gauge, KeyRound,
+  Ticket, LogOut, Users, ChevronLeft, ChevronRight, ChevronsUpDown, CircleDot, LayoutDashboard, Plus, ShieldCheck, BarChart3, Gauge, KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStats } from '../api/cases';
 import ChangePasswordDialog from './ChangePasswordDialog';
+import BrandLogo from './BrandLogo';
+import { getBrand, getLoginPath } from '@/lib/brand';
 
 const NAV_ITEMS = [
   { to: '/dashboard',    icon: LayoutDashboard, labelKey: 'nav.home',          roles: ['admin', 'support', 'client'], end: true },
-  { to: '/cases/new',    icon: Plus,            labelKey: 'nav.newTicket',     roles: ['client'], end: true },
-  { to: '/cases/mine',   icon: ListChecks,      labelKey: 'nav.myTickets',     roles: ['client'], end: true },
+  // "Nuevo Ticket" va resaltado como botón (highlight) y "Mis Tickets" se quitó
+  // del menú (pedido del usuario, 2026-10-22; la ruta /cases/mine sigue existiendo).
+  { to: '/cases/new',    icon: Plus,            labelKey: 'nav.newTicket',     roles: ['client'], end: true, highlight: true },
   { to: '/cases/active', icon: CircleDot,       labelKey: 'nav.activeTickets', roles: ['admin', 'support', 'client'] },
   { to: '/cases',        icon: Ticket,          labelKey: 'nav.tickets',       roles: ['admin', 'support', 'client'], end: true },
   { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.policies',      roles: ['admin', 'support'], end: true },
@@ -40,6 +43,9 @@ const BOTTOM_NAV_ITEMS = [
 const Layout = () => {
   const { t } = useTranslation();
   const { user, logout, customerLabel } = useAuth();
+  // Marca del usuario (Grupo Staff / Satustec): logos y título. Los colores
+  // vienen de las variables --brand-* (data-brand en <html>, ver AuthContext).
+  const brand = getBrand(user?.company);
   const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(
@@ -59,7 +65,8 @@ const Layout = () => {
       return next;
     });
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  // Al login de la empresa del usuario (recordada al entrar): /login o /loginst.
+  const handleLogout = () => { logout(); navigate(getLoginPath()); };
 
   const initials = (user?.fullName || user?.email || 'U')
     .split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -76,7 +83,7 @@ const Layout = () => {
         style={{
           width: collapsed ? 56 : 220,
           transition: 'width 280ms cubic-bezier(0.4,0,0.2,1)',
-          background: 'linear-gradient(175deg, var(--gs-navy) 0%, oklch(0.19 0.065 258) 100%)',
+          background: 'linear-gradient(175deg, var(--brand-navy) 0%, var(--brand-navy-deep) 100%)',
           boxShadow: '2px 0 24px oklch(0 0 0 / 0.16)',
         }}
       >
@@ -92,14 +99,14 @@ const Layout = () => {
               title={t('nav.expandMenu')}
               className="w-full h-14 flex items-center justify-center transition-colors duration-150 hover:bg-white/[0.07]"
             >
-              <img src="/isotipo.png" alt="GS" className="h-9 w-9 object-contain" />
+              <BrandLogo brand={brand.key} variant="isotipo" className="h-9 w-9 text-lg" />
             </button>
           ) : (
             /* Expandido: isotipo + texto + botón toggle */
             <div className="flex items-center w-full pl-3 pr-2 gap-2.5">
-              <img src="/isotipo.png" alt="GS" className="h-9 w-9 object-contain shrink-0" />
+              <BrandLogo brand={brand.key} variant="isotipo" className="h-9 w-9 shrink-0 text-lg" />
               <span className="flex-1 text-sm font-semibold text-white whitespace-nowrap tracking-wide">
-                {t('common.portalTitle')}
+                {t(brand.portalTitleKey)}
               </span>
               <button
                 onClick={toggle}
@@ -117,7 +124,7 @@ const Layout = () => {
           <p
             className="text-[10px] font-bold uppercase tracking-[0.18em] whitespace-nowrap overflow-hidden"
             style={{
-              color: 'var(--gs-cyan)',
+              color: 'var(--brand-accent)',
               padding: collapsed ? '0' : '0 12px 8px',
               maxHeight: collapsed ? 0 : 28,
               opacity: collapsed ? 0 : 1,
@@ -127,7 +134,48 @@ const Layout = () => {
             {t('nav.menu')}
           </p>
 
-          {visibleNav.map(({ to, icon: Icon, labelKey, end }) => (
+          {visibleNav.map(({ to, icon: Icon, labelKey, end, highlight }) => (highlight ? (
+            // Opción resaltada ("Nuevo Ticket"): borde punteado del color de acento
+            // y el "+" en un círculo relleno — se lee como acción, no como opción
+            // seleccionada (el relleno sólido queda reservado para la activa; un
+            // primer intento con fondo blanco se confundía con ella, 2026-10-22).
+            // Activa → igual que cualquier otra opción activa.
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              title={collapsed ? t(labelKey) : undefined}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center rounded-lg text-sm font-semibold whitespace-nowrap overflow-hidden border border-dashed transition-colors duration-150',
+                  collapsed ? 'w-10 h-10 mx-auto justify-center' : 'gap-3 px-3 py-2',
+                  isActive ? 'text-white' : 'text-white hover:bg-white/5'
+                )
+              }
+              style={({ isActive }) => (isActive
+                ? { background: 'var(--brand-accent)', borderColor: 'transparent' }
+                : { borderColor: 'var(--brand-accent)' })}
+            >
+              {({ isActive }) => (
+                <>
+                  <span
+                    className="flex items-center justify-center w-5 h-5 rounded-full shrink-0"
+                    style={{ background: isActive ? 'rgb(255 255 255 / 0.25)' : 'var(--brand-accent)' }}
+                  >
+                    <Icon className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+                  </span>
+                  {!collapsed && (
+                    <>
+                      <span>{t(labelKey)}</span>
+                      {isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60 shrink-0" />
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </NavLink>
+          ) : (
             <NavLink
               key={to}
               to={to}
@@ -142,7 +190,7 @@ const Layout = () => {
                     : 'gs-nav-inactive'
                 )
               }
-              style={({ isActive }) => isActive ? { background: 'var(--gs-cyan)' } : {}}
+              style={({ isActive }) => isActive ? { background: 'var(--brand-accent)' } : {}}
             >
               {({ isActive }) => (
                 <>
@@ -158,7 +206,7 @@ const Layout = () => {
                 </>
               )}
             </NavLink>
-          ))}
+          )))}
         </nav>
 
         {/* ── Sección inferior: Tareas / Usuarios (admin) ────── */}
@@ -182,7 +230,7 @@ const Layout = () => {
                       : 'gs-nav-inactive'
                   )
                 }
-                style={({ isActive }) => isActive ? { background: 'var(--gs-cyan)' } : {}}
+                style={({ isActive }) => isActive ? { background: 'var(--brand-accent)' } : {}}
               >
                 {({ isActive }) => (
                   <>
@@ -207,8 +255,8 @@ const Layout = () => {
           <div
             className="shrink-0 mx-2 mb-2 rounded-lg overflow-hidden"
             style={{
-              background: 'oklch(0.68 0.11 208 / 0.14)',
-              border: '1px solid oklch(0.68 0.11 208 / 0.22)',
+              background: 'var(--brand-accent-soft)',
+              border: '1px solid var(--brand-accent-line)',
             }}
           >
             {collapsed ? (
@@ -216,13 +264,13 @@ const Layout = () => {
                 className="flex flex-col items-center justify-center h-10 gap-0.5"
                 title={t('common.activeTicketsCount', { count: activeCount })}
               >
-                <span className="text-xs font-bold leading-none" style={{ color: 'var(--gs-cyan)' }}>
+                <span className="text-xs font-bold leading-none" style={{ color: 'var(--brand-accent)' }}>
                   {activeCount}
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2.5 px-3 py-2.5">
-                <CircleDot className="h-4 w-4 shrink-0" style={{ color: 'var(--gs-cyan)' }} />
+                <CircleDot className="h-4 w-4 shrink-0" style={{ color: 'var(--brand-accent)' }} />
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-white leading-tight">{activeCount}</p>
                   <p className="text-[10px] leading-tight whitespace-nowrap" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
@@ -251,7 +299,7 @@ const Layout = () => {
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback
                     className="text-xs font-bold"
-                    style={{ background: 'var(--gs-cyan)', color: 'white' }}
+                    style={{ background: 'var(--brand-accent)', color: 'white' }}
                   >
                     {initials}
                   </AvatarFallback>
@@ -328,11 +376,7 @@ const Layout = () => {
               {customerLabel}
             </span>
           )}
-          <img
-            src="/LOGO%20GS%20Color_240x54.png"
-            alt="Grupo Staff"
-            className="h-9 w-auto object-contain"
-          />
+          <BrandLogo brand={brand.key} variant="header" className="h-9 w-auto" />
         </header>
 
         {/* Área de contenido con scroll */}

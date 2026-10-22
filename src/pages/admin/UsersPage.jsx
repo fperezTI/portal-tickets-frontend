@@ -61,6 +61,9 @@ const createSchema = z.object({
   password:       passwordRules,
   role:           z.enum(['admin', 'support', 'client']),
   language:       z.enum(['es', 'en']),
+  // Empresa (multi-empresa, 2026-10-07): solo se guarda para staff; la de un
+  // cliente sale de su cuenta en Dynamics.
+  company:        z.enum(['grupostaff', 'satustec']),
   d365ContactId:  guidOrEmpty,
   d365AccountId:  guidOrEmpty,
 });
@@ -69,6 +72,9 @@ const editSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
   role:           z.enum(['admin', 'support', 'client']),
   language:       z.enum(['es', 'en']),
+  // Empresa (multi-empresa, 2026-10-07): solo se guarda para staff; la de un
+  // cliente sale de su cuenta en Dynamics.
+  company:        z.enum(['grupostaff', 'satustec']),
   isActive:       z.boolean(),
   d365ContactId:  guidOrEmpty,
   d365AccountId:  guidOrEmpty,
@@ -90,12 +96,13 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
             fullName:      user.fullName || '',
             role:          user.role || 'client',
             language:      user.language || 'es',
+            company:       user.company || 'grupostaff',
             isActive:      user.isActive ?? true,
             d365ContactId: user.d365ContactId || '',
             d365AccountId: user.d365AccountId || '',
             password:      '',
           }
-        : { email: '', fullName: '', password: '', role: 'client', language: 'es', d365ContactId: '', d365AccountId: '' },
+        : { email: '', fullName: '', password: '', role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' },
     });
 
   // Sincronizar defaults cuando cambia el usuario seleccionado
@@ -107,17 +114,19 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               fullName:      user.fullName || '',
               role:          user.role || 'client',
               language:      user.language || 'es',
+              company:       user.company || 'grupostaff',
               isActive:      user.isActive ?? true,
               d365ContactId: user.d365ContactId || '',
               d365AccountId: user.d365AccountId || '',
               password:      '',
             }
-          : { email: '', fullName: '', password: '', role: 'client', language: 'es', d365ContactId: '', d365AccountId: '' }
+          : { email: '', fullName: '', password: '', role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' }
       );
     }
   }, [open, user]);
 
   const isActive = watch('isActive');
+  const role = watch('role');
 
   const onSubmit = async (data) => {
     try {
@@ -126,6 +135,8 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
       payload.d365ContactId = payload.d365ContactId || null;
       payload.d365AccountId = payload.d365AccountId || null;
       if (isEdit && !payload.password) delete payload.password;
+      // La empresa de un cliente sale de su cuenta: no se manda (el backend la ignora igual).
+      if (payload.role === 'client') delete payload.company;
 
       if (isEdit) {
         await updateUser(user.id, payload);
@@ -200,6 +211,29 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               </SelectContent>
             </Select>
             {errors.language && <p className="text-xs text-destructive">{errors.language.message}</p>}
+          </div>
+
+          {/* Empresa — solo staff; para clientes sale de su cuenta en Dynamics */}
+          <div className="space-y-1.5">
+            <Label>{t('usersPage.companyLabel')}</Label>
+            {role === 'client' ? (
+              <p className="text-xs text-muted-foreground rounded-md border bg-muted/30 px-3 py-2">{t('usersPage.companyClientHint')}</p>
+            ) : (
+              <Select
+                key={isEdit ? user.id : 'new'}
+                defaultValue={isEdit ? (user.company || 'grupostaff') : 'grupostaff'}
+                onValueChange={(v) => setValue('company', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grupostaff">Grupo Staff</SelectItem>
+                  <SelectItem value="satustec">Satustec</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {errors.company && <p className="text-xs text-destructive">{errors.company.message}</p>}
           </div>
 
           {/* Estado activo (solo en edición) */}

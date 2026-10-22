@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getLoginPath } from '@/lib/brand';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -56,7 +57,7 @@ const ChangePasswordDialog = ({ open, onClose }) => {
       reset();
       onClose();
       await logout();
-      navigate('/login', { replace: true });
+      navigate(getLoginPath(), { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || t('changePassword.error'));
     }
