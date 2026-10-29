@@ -220,7 +220,7 @@ const DetailAllocationPanel = ({ detail, suggestions, accepted, hoursOverride, s
   );
 };
 
-const STAFF_ROLES = ['admin', 'support'];
+const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
 // ─── Página ────────────────────────────────────────────────────────────────────
 const PolicyDetailPage = () => {

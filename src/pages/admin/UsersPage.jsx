@@ -28,8 +28,8 @@ import { cn } from '@/lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const ROLE_LABEL_KEY   = { admin: 'usersPage.roleAdmin', support: 'usersPage.roleSupport', client: 'usersPage.roleClient' };
-const ROLE_VARIANT = { admin: 'default', support: 'outline', client: 'secondary' };
+const ROLE_LABEL_KEY   = { admin: 'usersPage.roleAdmin', support: 'usersPage.roleSupport', consultor: 'usersPage.roleConsultor', client: 'usersPage.roleClient' };
+const ROLE_VARIANT = { admin: 'default', support: 'outline', consultor: 'outline', client: 'secondary' };
 const LANGUAGE_LABEL_KEY = { es: 'usersPage.languageSpanish', en: 'usersPage.languageEnglish' };
 
 const initials = (name) =>
@@ -59,7 +59,7 @@ const createSchema = z.object({
   email:          z.string().email('Email inválido'),
   fullName:       z.string().min(1, 'Nombre requerido'),
   password:       passwordRules,
-  role:           z.enum(['admin', 'support', 'client']),
+  role:           z.enum(['admin', 'support', 'consultor', 'client']),
   language:       z.enum(['es', 'en']),
   // Empresa (multi-empresa, 2026-10-07): solo se guarda para staff; la de un
   // cliente sale de su cuenta en Dynamics.
@@ -70,7 +70,7 @@ const createSchema = z.object({
 
 const editSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
-  role:           z.enum(['admin', 'support', 'client']),
+  role:           z.enum(['admin', 'support', 'consultor', 'client']),
   language:       z.enum(['es', 'en']),
   // Empresa (multi-empresa, 2026-10-07): solo se guarda para staff; la de un
   // cliente sale de su cuenta en Dynamics.
@@ -189,6 +189,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               <SelectContent>
                 <SelectItem value="client">{t('usersPage.roleClient')}</SelectItem>
                 <SelectItem value="support">{t('usersPage.roleSupport')}</SelectItem>
+                <SelectItem value="consultor">{t('usersPage.roleConsultor')}</SelectItem>
                 <SelectItem value="admin">{t('usersPage.roleAdmin')}</SelectItem>
               </SelectContent>
             </Select>
@@ -427,6 +428,7 @@ const UsersPage = () => {
           <SelectContent>
             <SelectItem value="client">{t('usersPage.roleClientPlural')}</SelectItem>
             <SelectItem value="support">{t('usersPage.roleSupport')}</SelectItem>
+            <SelectItem value="consultor">{t('usersPage.roleConsultor')}</SelectItem>
             <SelectItem value="admin">{t('usersPage.roleAdmin')}</SelectItem>
             <SelectItem value="">{t('usersPage.allRoles')}</SelectItem>
           </SelectContent>

@@ -36,7 +36,7 @@ const PriorityBadge = ({ code }) => {
     </span>
   );
 };
-const STAFF_ROLES = ['admin', 'support'];
+const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
 const STAGE_PALETTE = ['#94A3B8', '#0EA5E9', '#EAB308', '#F97316', '#22C55E', '#1E3A8A'];
 const STAGE_KEYWORD_COLOR = [

@@ -26,7 +26,7 @@ import { ArrowLeft, Lock, CheckCircle2, Paperclip, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS_PER_TICKET } from '@/lib/attachments';
 
-const STAFF_ROLES = ['admin', 'support'];
+const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
 const CASE_TYPE_KEYS = [
   { value: '1', key: 'newCase.caseTypeQuestion' },

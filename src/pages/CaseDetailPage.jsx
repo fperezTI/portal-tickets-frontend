@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 import { fmtHours } from '@/lib/utils';
 import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_SIZE, triggerBlobDownload } from '@/lib/attachments';
 
-const STAFF_ROLES = ['admin', 'support'];
+const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
 // ─── Priority badge ────────────────────────────────────────────────────────────
 const PRIORITY_COLOR = {

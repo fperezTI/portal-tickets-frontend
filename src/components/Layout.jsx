@@ -20,15 +20,15 @@ import BrandLogo from './BrandLogo';
 import { getBrand, getLoginPath } from '@/lib/brand';
 
 const NAV_ITEMS = [
-  { to: '/dashboard',    icon: LayoutDashboard, labelKey: 'nav.home',          roles: ['admin', 'support', 'client'], end: true },
+  { to: '/dashboard',    icon: LayoutDashboard, labelKey: 'nav.home',          roles: ['admin', 'support', 'consultor', 'client'], end: true },
   // "Nuevo Ticket" va resaltado como botón (highlight) y "Mis Tickets" se quitó
   // del menú (pedido del usuario, 2026-10-22; la ruta /cases/mine sigue existiendo).
   { to: '/cases/new',    icon: Plus,            labelKey: 'nav.newTicket',     roles: ['client'], end: true, highlight: true },
-  { to: '/cases/active', icon: CircleDot,       labelKey: 'nav.activeTickets', roles: ['admin', 'support', 'client'] },
-  { to: '/cases',        icon: Ticket,          labelKey: 'nav.tickets',       roles: ['admin', 'support', 'client'], end: true },
-  { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.policies',      roles: ['admin', 'support'], end: true },
+  { to: '/cases/active', icon: CircleDot,       labelKey: 'nav.activeTickets', roles: ['admin', 'support', 'consultor', 'client'] },
+  { to: '/cases',        icon: Ticket,          labelKey: 'nav.tickets',       roles: ['admin', 'support', 'consultor', 'client'], end: true },
+  { to: '/policies/mine', icon: ShieldCheck,    labelKey: 'nav.policies',      roles: ['admin', 'support', 'consultor'], end: true },
   // "Consumo" abre el Reporte de soporte (SupportReportPage) desde 2026-10-06.
-  { to: '/consumption',  icon: BarChart3,       labelKey: 'nav.consumption',   roles: ['admin', 'support', 'client'], end: true },
+  { to: '/consumption',  icon: BarChart3,       labelKey: 'nav.consumption',   roles: ['admin', 'support', 'consultor', 'client'], end: true },
 ];
 
 // Sección aparte, en la parte inferior de la barra (arriba del widget de

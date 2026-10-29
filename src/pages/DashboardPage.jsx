@@ -42,7 +42,7 @@ const stageOrder = (name) => {
   return idx === -1 ? 99 : idx;
 };
 
-const STAFF_ROLES = ['admin', 'support'];
+const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
 // ─── Tarjeta KPI ─────────────────────────────────────────────────────────────
 const KpiCard = ({ icon: Icon, value, label, iconBg = 'bg-muted', iconColor = 'text-muted-foreground', valueColor = 'text-foreground' }) => (

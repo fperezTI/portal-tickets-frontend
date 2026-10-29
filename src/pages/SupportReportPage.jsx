@@ -23,7 +23,7 @@ import { getBrand } from '@/lib/brand';
 // del usuario. Los avisos internos (outOfPolicy, cierrePending) el backend ni
 // siquiera los manda a un client.
 
-const STAFF_ROLES = ['admin', 'support'];
+const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
 // Clave interna del grupo sin customer user (la etiqueta visible sale de SHEET_TEXT).
 const NO_CUSTOMER_USER = '__none__';

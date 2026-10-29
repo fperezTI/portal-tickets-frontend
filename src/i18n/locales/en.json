@@ -345,6 +345,7 @@
   "usersPage": {
     "roleAdmin": "Admin",
     "roleSupport": "Support",
+    "roleConsultor": "Consultant",
     "roleClient": "Client",
     "roleClientPlural": "Clients",
     "languageSpanish": "Español",
