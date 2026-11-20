@@ -160,6 +160,7 @@
     "description": "Descripción",
     "comments": "Comentarios ({{count}})",
     "commentDateFormat": "dd MMM yyyy 'a las' HH:mm",
+    "longDateFormat": "dd 'de' MMMM yyyy",
     "timeline": "Timeline",
     "entriesCount": "{{count}} entradas",
     "searchTimeline": "Buscar en timeline…",

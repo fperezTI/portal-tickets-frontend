@@ -572,10 +572,10 @@ const CaseDetailPage = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <Field label={t('table.owner')}>{c.ownerName}</Field>
                 <Field label={t('table.created')}>
-                  {c.createdon ? format(new Date(c.createdon), "dd 'de' MMMM yyyy", { locale: dateLocale }) : null}
+                  {c.createdon ? format(new Date(c.createdon), t('caseDetail.longDateFormat'), { locale: dateLocale }) : null}
                 </Field>
                 <Field label={t('caseDetail.closeDate')}>
-                  {c.new_fechacierre ? format(new Date(c.new_fechacierre), "dd 'de' MMMM yyyy", { locale: dateLocale }) : null}
+                  {c.new_fechacierre ? format(new Date(c.new_fechacierre), t('caseDetail.longDateFormat'), { locale: dateLocale }) : null}
                 </Field>
               </div>
               <Separator />
