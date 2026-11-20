@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner';
 import { fmtHours } from '@/lib/utils';
 import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_SIZE, triggerBlobDownload } from '@/lib/attachments';
+import { moduleLabel } from '@/lib/supportReportI18n';
 
 const STAFF_ROLES = ['admin', 'support', 'consultor'];
 
@@ -420,7 +421,7 @@ const CommentForm = ({ caseId, onCommentAdded }) => {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 const CaseDetailPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = useDateLocale();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -565,7 +566,7 @@ const CaseDetailPage = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <Field label={t('caseDetail.serviceCategory')}>{c.serviceCategoryName}</Field>
                 <Field label={t('caseDetail.system')}>{c.systemName}</Field>
-                <Field label={t('caseDetail.module')}>{c.moduleName}</Field>
+                <Field label={t('caseDetail.module')}>{moduleLabel(c.moduleName, i18n.language)}</Field>
               </div>
               <Separator />
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

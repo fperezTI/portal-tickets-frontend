@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { Printer, FileSpreadsheet, Clock, Ticket, ShieldCheck, TrendingUp, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SHEET_TEXT, STAGE_EN, MODULE_EN } from '@/lib/supportReportI18n';
+import { SHEET_TEXT, STAGE_EN, moduleLabel as translateModule } from '@/lib/supportReportI18n';
 import { LoadingCard } from '../components/LoadingMessages';
 import { exportSupportTicketsExcel } from '@/lib/supportTicketsExcel';
 import BrandLogo from '../components/BrandLogo';
@@ -87,7 +87,7 @@ const KpiTile = ({ label, value, tone }) => (
 
 const ModuleChart = ({ data, t, lang }) => {
   // El backend manda "Sin módulo" y los nombres de Dynamics en español.
-  const moduleLabel = (m) => (m === 'Sin módulo' ? t.noModule : lang === 'en' ? (MODULE_EN[m] ?? m) : m);
+  const moduleLabel = (m) => (m === 'Sin módulo' ? t.noModule : translateModule(m, lang));
   return (
     <div className="space-y-1.5">
       <p className="text-sm font-semibold">{t.ticketsByModule}</p>

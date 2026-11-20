@@ -110,3 +110,10 @@ export const MODULE_EN = {
   'Ventas y marketing': 'Sales and marketing',
   'Viajes y cargos': 'Travel and expenses',
 };
+
+// Nombre del módulo (área) en el idioma del usuario: en inglés usa MODULE_EN,
+// en español (o si el módulo no está en la lista) lo deja tal cual viene de
+// Dynamics. Se usa en el detalle del ticket, el selector de "Nuevo ticket" y
+// el reporte de soporte. El correo de confirmación usa la copia del backend
+// (src/config/modules.js) — mantener ambas listas iguales.
+export const moduleLabel = (name, lang) => (lang === 'en' && name ? (MODULE_EN[name] ?? name) : name);

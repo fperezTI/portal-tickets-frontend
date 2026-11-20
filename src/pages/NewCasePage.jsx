@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { createCase, addCaseComment } from '../api/cases';
 import { listServiceCategories, listSystems, listAreas } from '../api/d365';
+import { moduleLabel } from '@/lib/supportReportI18n';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,7 +86,15 @@ const CatalogSelect = ({ label, required, placeholder, options, value, onChange,
 // y el usuario pulsa "Crear otro": así se garantiza un estado 100% limpio (react-hook-form,
 // D365Combobox) sin depender de las particularidades de reset()/clearErrors().
 const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems, areas, onCreateAnother }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Módulos en el idioma del usuario (Dynamics los guarda en español), ordenados
+  // por el nombre ya traducido para que la lista quede alfabética en ambos idiomas.
+  const areaOptions = useMemo(
+    () => areas
+      .map((a) => ({ ...a, name: moduleLabel(a.name, i18n.language) }))
+      .sort((a, b) => a.name.localeCompare(b.name, i18n.language, { sensitivity: 'base' })),
+    [areas, i18n.language]
+  );
   const schema = useCaseSchema();
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -422,7 +431,7 @@ const TicketForm = ({ isStaff, user, catalogsLoading, serviceCategories, systems
           label={t('caseDetail.module')}
           required={!locked}
           placeholder={t('newCase.selectModule')}
-          options={areas}
+          options={areaOptions}
           loading={catalogsLoading}
           value={watch('areaId')}
           onChange={(val) => setValue('areaId', val, { shouldValidate: true })}
