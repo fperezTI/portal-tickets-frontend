@@ -211,6 +211,13 @@ const EmailBody = ({ html }) => {
   );
 };
 
+// El backend manda `typeLabel` fijo en español ("Tarea", "Correo"...) y sin
+// etiqueta para algunos tipos (la resolución llega como "incidentresolution"):
+// se traduce aquí por `type`, y solo si el tipo no está en el catálogo se usa
+// el typeLabel del backend.
+const activityTypeLabel = (t, item) =>
+  t(`caseDetail.activityTypes.${item.type}`, { defaultValue: item.typeLabel || item.type });
+
 // ─── Single timeline entry ─────────────────────────────────────────────────────
 const TimelineItem = ({ item, caseId }) => {
   const { t } = useTranslation();
@@ -240,7 +247,7 @@ const TimelineItem = ({ item, caseId }) => {
         </p>
         <div className="flex items-center gap-1.5 flex-wrap mb-1">
           <ActivityIcon type={item.type} />
-          <span className="text-xs font-semibold text-foreground">{item.typeLabel}:</span>
+          <span className="text-xs font-semibold text-foreground">{activityTypeLabel(t, item)}:</span>
           <span className="text-xs font-semibold text-primary">{owner}</span>
           {item.isOverdue && (
             <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
@@ -288,7 +295,7 @@ const Timeline = ({ items = [], caseId }) => {
 
   const filtered = search
     ? items.filter(i =>
-        [i.subject, i.description, i.ownerName, i.typeLabel]
+        [i.subject, i.description, i.ownerName, activityTypeLabel(t, i)]
           .filter(Boolean).some(s => s.toLowerCase().includes(search.toLowerCase()))
       )
     : items;

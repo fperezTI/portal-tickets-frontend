@@ -162,6 +162,7 @@
     "commentDateFormat": "MMM d, yyyy 'at' h:mm a",
     "longDateFormat": "MMMM d, yyyy",
     "timeline": "Timeline",
+    "activityTypes": { "task": "Task", "email": "Email", "phonecall": "Phone call", "appointment": "Appointment", "letter": "Letter", "fax": "Fax", "serviceappointment": "Service appointment", "socialactivity": "Social activity", "note": "Note", "incidentresolution": "Resolution" },
     "entriesCount": "{{count}} entries",
     "searchTimeline": "Search timeline…",
     "noResults": "No results.",
