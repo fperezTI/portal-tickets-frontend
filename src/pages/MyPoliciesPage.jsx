@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { useDateLocale } from '../hooks/useDateLocale';
+import { useDateLocale, datePattern } from '../hooks/useDateLocale';
 import { listMyPolicies, listPolicyCustomers, getPolicyHoursByMonth } from '../api/policies';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ const parseUSDate = (str) => {
 };
 const fmtUSDate = (str, locale) => {
   const date = parseUSDate(str);
-  return date ? format(date, 'dd MMM yyyy', { locale }) : null;
+  return date ? format(date, datePattern(locale, 'date'), { locale }) : null;
 };
 
 // ─── Estado sin contacto/cuenta vinculada ─────────────────────────────────────

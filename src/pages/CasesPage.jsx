@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { useDateLocale } from '../hooks/useDateLocale';
+import { useDateLocale, datePattern } from '../hooks/useDateLocale';
 import { listCases } from '../api/cases';
 import { listUsers } from '../api/users';
 import { useAuth } from '../context/AuthContext';
@@ -234,7 +234,7 @@ const CasesTable = ({ cases, onRowClick, showCustomer = false }) => {
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.billableHours ? `${fmtHours(c.billableHours)}h` : '—'}</span> },
     { key: 'creado', label: t('table.created'), width: 110, filterType: 'none',
       accessor: (c) => c.createdon ? new Date(c.createdon) : null,
-      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: dateLocale }) : '—'}</span> },
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), datePattern(dateLocale, 'date'), { locale: dateLocale }) : '—'}</span> },
   ];
 
   return (

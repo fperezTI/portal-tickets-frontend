@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { useDateLocale } from '../hooks/useDateLocale';
+import { useDateLocale, datePattern } from '../hooks/useDateLocale';
 import { useAuth } from '../context/AuthContext';
 import {
   getPolicyDetail, getAllocationSuggestions, listAllocations, createAllocations, deactivateAllocation,
@@ -56,7 +56,7 @@ const parseUSDate = (str) => {
 };
 const fmtDate = (str, locale) => {
   const date = parseUSDate(str);
-  return date ? format(date, 'dd MMM yyyy', { locale }) : null;
+  return date ? format(date, datePattern(locale, 'date'), { locale }) : null;
 };
 
 // El backend expone la fecha límite de la tarea sin ambigüedad de huso horario
@@ -65,7 +65,7 @@ const fmtDate = (str, locale) => {
 const fmtDayKey = (key, locale) => {
   if (!key) return null;
   const [y, m, d] = key.split('-').map(Number);
-  return format(new Date(y, m - 1, d), 'dd MMM yyyy', { locale });
+  return format(new Date(y, m - 1, d), datePattern(locale, 'date'), { locale });
 };
 
 // "YYYY-MM" -> "diciembre 2025"

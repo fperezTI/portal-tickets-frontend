@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { useDateLocale } from '../../hooks/useDateLocale';
+import { useDateLocale, datePattern } from '../../hooks/useDateLocale';
 import { listUsers, createUser, updateUser, deleteUser } from '../../api/users';
 import D365Combobox from '../../components/D365Combobox';
 import { Button } from '@/components/ui/button';
@@ -534,7 +534,7 @@ const UsersPage = () => {
                       {/* Último acceso */}
                       <td className="px-6 py-3 text-muted-foreground whitespace-nowrap">
                         {u.lastLoginAt
-                          ? format(new Date(u.lastLoginAt), 'dd MMM yyyy HH:mm', { locale: dateLocale })
+                          ? format(new Date(u.lastLoginAt), datePattern(dateLocale, 'dateTime'), { locale: dateLocale })
                           : <span className="italic text-xs">{t('usersPage.never')}</span>}
                       </td>
 

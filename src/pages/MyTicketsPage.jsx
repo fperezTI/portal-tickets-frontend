@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { useDateLocale } from '../hooks/useDateLocale';
+import { useDateLocale, datePattern } from '../hooks/useDateLocale';
 import { listMyCases, cancelCase } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -166,7 +166,7 @@ const MyTicketsTable = ({ cases, onRowClick, onDeleteClick }) => {
       render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.billableHours ? `${fmtHours(c.billableHours)}h` : '—'}</span> },
     { key: 'creado', label: t('table.created'), width: 110, filterType: 'none',
       accessor: (c) => c.createdon ? new Date(c.createdon) : null,
-      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), 'dd MMM yyyy', { locale: dateLocale }) : '—'}</span> },
+      render: (c) => <span className="text-muted-foreground whitespace-nowrap text-xs">{c.createdon ? format(new Date(c.createdon), datePattern(dateLocale, 'date'), { locale: dateLocale }) : '—'}</span> },
     { key: 'accion', label: '', width: 60, sortable: false, filterType: 'none', accessor: () => null, className: 'text-right',
       render: (c) => (c.new_portal && c.statecode !== 2 ? (
         <Button

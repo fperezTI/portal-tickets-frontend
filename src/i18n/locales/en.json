@@ -159,7 +159,7 @@
     "totalHours": "Total hours",
     "description": "Description",
     "comments": "Comments ({{count}})",
-    "commentDateFormat": "dd MMM yyyy 'at' HH:mm",
+    "commentDateFormat": "MMM d, yyyy 'at' h:mm a",
     "longDateFormat": "MMMM d, yyyy",
     "timeline": "Timeline",
     "entriesCount": "{{count}} entries",

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format, isAfter } from 'date-fns';
-import { useDateLocale } from '../hooks/useDateLocale';
+import { useDateLocale, datePattern } from '../hooks/useDateLocale';
 import { getCaseDetail, updateCasePolicy, addCaseComment, downloadCaseComment, requestCaseClosure } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -220,7 +220,7 @@ const TimelineItem = ({ item, caseId }) => {
   const owner = item.ownerName || '—';
   const dueDate = item.scheduledend || item.date;
   const dateStr = dueDate
-    ? format(new Date(dueDate), 'dd/MM/yyyy HH:mm', { locale: dateLocale })
+    ? format(new Date(dueDate), datePattern(dateLocale, 'numericDateTime'), { locale: dateLocale })
     : '';
 
   // Para correos, el cuerpo HTML se renderiza aparte (ver EmailBody) — acá solo
