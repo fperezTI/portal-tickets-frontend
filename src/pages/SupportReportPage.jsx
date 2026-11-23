@@ -78,10 +78,15 @@ const SummaryCard = ({ icon: Icon, value, label, iconBg, iconColor, valueColor }
   </Card>
 );
 
+// El tamaño del número y de la etiqueta sale del ancho REAL del recuadro
+// (@container + cqi), no del ancho de la pantalla: la columna de los KPIs se
+// angosta en pantallas medianas y un tamaño fijo hacía que "-10.50" o
+// "Contracted" se salieran del recuadro (2026-11-23). En impresión manda el
+// CSS de @media print (tamaños fijos con !important).
 const KpiTile = ({ label, value, tone }) => (
-  <div className={cn('kpi-tile rounded-lg px-2 py-3 text-center border min-w-0', tone)}>
-    <p className="kpi-label text-sm font-semibold leading-tight">{label}</p>
-    <p className="kpi-value text-2xl 2xl:text-3xl font-bold font-display mt-1 tabular-nums">{fmt2(value)}</p>
+  <div className={cn('kpi-tile @container rounded-lg px-2 py-3 text-center border min-w-0', tone)}>
+    <p className="kpi-label text-[clamp(0.7rem,12cqi,0.875rem)] font-semibold leading-tight [overflow-wrap:anywhere]">{label}</p>
+    <p className="kpi-value text-[clamp(0.95rem,19cqi,1.875rem)] font-bold font-display mt-1 tabular-nums whitespace-nowrap">{fmt2(value)}</p>
   </div>
 );
 
@@ -563,7 +568,9 @@ const SupportReportPage = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            {/* Si no caben 3 recuadros de al menos 5.5rem, el tercero baja de fila
+                en vez de apretarse; el PDF siempre lleva los 3 en una fila. */}
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] print:grid-cols-3 gap-2">
               <KpiTile label={t.kpiPolicy} value={summary.policyHours} tone="bg-secondary" />
               <KpiTile label={t.kpiSupport} value={summary.consumedHours} tone="bg-accent" />
               <KpiTile label={t.kpiBalance} value={summary.balance}
