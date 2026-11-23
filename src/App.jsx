@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import Layout from './components/Layout';
@@ -22,6 +22,16 @@ const SupportReportPage      = lazy(() => import('./pages/SupportReportPage'));
 const UsersPage              = lazy(() => import('./pages/admin/UsersPage'));
 const TasksPage              = lazy(() => import('./pages/admin/TasksPage'));
 const GeneralConsumptionPage = lazy(() => import('./pages/admin/GeneralConsumptionPage'));
+
+// Link base de Satustec (2026-11-23): https://www.onehubdesk.com/satustec
+// (local http://localhost:5173/satustec). Funciona como la página base "/":
+// con sesión → /dashboard; sin sesión → login de Satustec (/loginst), en vez
+// del login de la empresa recordada. No es un login: /loginst sigue igual.
+const SatustecEntry = () => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  return <Navigate to={user ? '/dashboard' : '/loginst'} replace />;
+};
 
 // /support-report fue la ruta original del reporte; redirige a /consumption
 // conservando los filtros de la URL (?client=&year=) para no romper enlaces.
@@ -45,6 +55,8 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             {/* Login de Satustec (2026-10-10): mismo login con colores de Satustec, siempre en inglés. */}
             <Route path="/loginst" element={<LoginPage brand="satustec" />} />
+            {/* Link base de Satustec (2026-11-23): equivale a "/" pero con el login de Satustec. */}
+            <Route path="/satustec" element={<SatustecEntry />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
