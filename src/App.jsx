@@ -10,6 +10,8 @@ import Layout from './components/Layout';
 // todas en el bundle inicial — un usuario cliente, por ejemplo, nunca
 // descarga el código de las páginas de administración.
 const LoginPage              = lazy(() => import('./pages/LoginPage'));
+const ForgotPasswordPage     = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage      = lazy(() => import('./pages/ResetPasswordPage'));
 const DashboardPage          = lazy(() => import('./pages/DashboardPage'));
 const CasesPage              = lazy(() => import('./pages/CasesPage'));
 const ActiveCasesPage        = lazy(() => import('./pages/ActiveCasesPage'));
@@ -57,6 +59,9 @@ function App() {
             <Route path="/loginst" element={<LoginPage brand="satustec" />} />
             {/* Link base de Satustec (2026-11-23): equivale a "/" pero con el login de Satustec. */}
             <Route path="/satustec" element={<SatustecEntry />} />
+            {/* "¿Olvidaste tu contraseña?" (2026-11-23): públicas. /reset-password es el link del correo. */}
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>

@@ -106,6 +106,18 @@ El corporativo tiene dos empresas sin nombre común. Los datos se comparten; cam
 - **Usuarios**: campo "Empresa" para staff (`company`); para un cliente se muestra una nota (su empresa sale de su cuenta) y no se envía.
 - **Datos de prueba**: cuenta SATUSTEC LLC marcada como Satustec y usuario cliente `prueba.satustec@onehubdesk.test` (contraseña aleatoria, nadie la conoce), creados con `scripts/setup-satustec-test-user.js` del backend; `--undo` los revierte.
 
+## Contraseñas: correo de acceso, cambio obligatorio y "olvidé mi contraseña" (2026-11-23)
+
+Reglas y endpoints en el `CLAUDE.md` del backend (sección "Contraseñas"). Lo propio del frontend:
+
+- **Marco compartido `AuthShell`** (`src/components/AuthShell.jsx`): el panel de marca + tarjeta del login, extraído tal cual de `LoginPage` (que se ve igual). Lo usan `/login`, `/loginst`, `/forgot-password`, `/reset-password` y el cambio obligatorio. `LOGIN_THEMES` vive ahí. `useAuthT(brandKey, language)`: idioma explícito del usuario > idioma fijo de la marca (Satustec = inglés) > el recordado; no toca el idioma global.
+- **Login**: link "¿Olvidaste tu contraseña?" (desde `/loginst` lleva `?brand=satustec`) y mensaje propio para `TEMP_PASSWORD_EXPIRED`.
+- **`/forgot-password`** (pública): marca por `?brand=`; siempre el mismo mensaje de "si está registrado, te llegará un enlace". **`/reset-password?token=`** (pública, link del correo): valida el token con el backend, que devuelve empresa e idioma del usuario para la marca; al guardar manda al login de su empresa (no inicia sesión solo).
+- **Cambio obligatorio**: `ProtectedRoute` muestra `ForcePasswordChangePage` en lugar del portal mientras `user.mustChangePassword` (marca e idioma del usuario; botón para cerrar sesión). El backend además bloquea la API (403 `PASSWORD_CHANGE_REQUIRED`).
+- **Cambiar contraseña devuelve una sesión nueva**: `AuthContext.applySession({ accessToken, user })`. `ChangePasswordDialog` ya NO cierra la sesión al cambiar (las demás sesiones del usuario sí se cierran, en el backend).
+- **Usuarios** (`UsersPage`): casilla "Enviar correo de acceso al usuario" solo para clientes nuevos, **marcada por default**; marcada, no se pide contraseña (la genera el backend). Avisos según `accessEmail` (`queued`/`failed`). Botón "Reenviar acceso" (ícono de avión) en clientes activos, con confirmación porque reemplaza la contraseña actual. Etiqueta "Cambio de contraseña pendiente" bajo el estado. Por decisión del usuario NO hay aviso al admin de que el cliente deberá cambiar la contraseña capturada a mano.
+- Reglas de contraseña nueva compartidas en `src/lib/passwordRules.js` (mismas que el backend) y campo con mostrar/ocultar en `src/components/PasswordField.jsx`. Textos en `passwordFlow.*` (y algunos en `login.*`, `changePassword.*`, `usersPage.*`).
+
 ## Entorno local y despliegue (2026-11-10)
 
 La guía completa (requisitos, secretos, cambio de computadora, conversaciones de Claude) está en el `CLAUDE.md` del backend, sección **"Entorno local, despliegue y cambio de computadora"**. Lo propio de este repo:

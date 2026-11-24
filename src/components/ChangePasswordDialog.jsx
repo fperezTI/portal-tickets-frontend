@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -11,15 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { getLoginPath } from '@/lib/brand';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 
 const ChangePasswordDialog = ({ open, onClose }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { applySession } = useAuth();
   const [error, setError] = useState('');
 
   // Mismas reglas que valida el backend (routes/index.js) — se validan
@@ -45,21 +42,21 @@ const ChangePasswordDialog = ({ open, onClose }) => {
 
   const handleClose = () => { reset(); setError(''); onClose(); };
 
-  // El backend revoca el refresh token y borra la cookie de sesión al
-  // cambiar la contraseña (para forzar a que quien la cambió vuelva a
-  // iniciar sesión) — así que después de un cambio exitoso se cierra la
-  // sesión local también, en vez de dejar al usuario en una sesión a medias.
+  // Desde 2026-11-23 el backend devuelve una sesión NUEVA al cambiar la
+  // contraseña (las demás sesiones del usuario quedan cerradas): el usuario
+  // sigue dentro, ya no se le manda al login.
   const onSubmit = async (data) => {
     setError('');
     try {
-      await changePassword(data.currentPassword, data.newPassword);
+      const session = await changePassword(data.currentPassword, data.newPassword);
+      applySession(session);
       toast.success(t('changePassword.successToast'));
       reset();
       onClose();
-      await logout();
-      navigate(getLoginPath(), { replace: true });
     } catch (err) {
-      setError(err.response?.data?.error || t('changePassword.error'));
+      setError(err.response?.data?.code === 'SAME_PASSWORD'
+        ? t('changePassword.samePassword')
+        : err.response?.data?.error || t('changePassword.error'));
     }
   };
 

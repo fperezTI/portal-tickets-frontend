@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { useDateLocale, datePattern } from '../../hooks/useDateLocale';
-import { listUsers, createUser, updateUser, deleteUser } from '../../api/users';
+import { listUsers, createUser, updateUser, deleteUser, resendAccess } from '../../api/users';
 import D365Combobox from '../../components/D365Combobox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2, Send, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -55,10 +55,13 @@ const passwordRules = z
   .regex(/[A-Z]/, 'Debe tener al menos una mayúscula')
   .regex(/[0-9]/, 'Debe tener al menos un número');
 
+// Correo de acceso (2026-11-23): para un cliente con la casilla marcada, la
+// contraseña la genera el backend y se le envía por correo — aquí no se pide.
 const createSchema = z.object({
   email:          z.string().email('Email inválido'),
   fullName:       z.string().min(1, 'Nombre requerido'),
-  password:       passwordRules,
+  password:       z.string().optional(),
+  sendAccessEmail: z.boolean(),
   role:           z.enum(['admin', 'support', 'consultor', 'client']),
   language:       z.enum(['es', 'en']),
   // Empresa (multi-empresa, 2026-10-07): solo se guarda para staff; la de un
@@ -66,7 +69,13 @@ const createSchema = z.object({
   company:        z.enum(['grupostaff', 'satustec']),
   d365ContactId:  guidOrEmpty,
   d365AccountId:  guidOrEmpty,
+}).superRefine((d, ctx) => {
+  if (d.role === 'client' && d.sendAccessEmail) return;
+  const r = passwordRules.safeParse(d.password ?? '');
+  if (!r.success) ctx.addIssue({ code: 'custom', path: ['password'], message: r.error.issues[0].message });
 });
+
+const CREATE_DEFAULTS = { email: '', fullName: '', password: '', sendAccessEmail: true, role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' };
 
 const editSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
@@ -102,7 +111,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
             d365AccountId: user.d365AccountId || '',
             password:      '',
           }
-        : { email: '', fullName: '', password: '', role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' },
+        : CREATE_DEFAULTS,
     });
 
   // Sincronizar defaults cuando cambia el usuario seleccionado
@@ -120,13 +129,16 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               d365AccountId: user.d365AccountId || '',
               password:      '',
             }
-          : { email: '', fullName: '', password: '', role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' }
+          : CREATE_DEFAULTS
       );
     }
   }, [open, user]);
 
   const isActive = watch('isActive');
   const role = watch('role');
+  const sendAccessEmail = watch('sendAccessEmail');
+  // Cliente nuevo con correo de acceso: la contraseña la genera el backend.
+  const autoPassword = !isEdit && role === 'client' && sendAccessEmail;
 
   const onSubmit = async (data) => {
     try {
@@ -137,13 +149,20 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
       if (isEdit && !payload.password) delete payload.password;
       // La empresa de un cliente sale de su cuenta: no se manda (el backend la ignora igual).
       if (payload.role === 'client') delete payload.company;
+      // Correo de acceso: solo clientes nuevos; con él no se manda contraseña.
+      if (!isEdit) {
+        payload.sendAccessEmail = payload.role === 'client' && !!payload.sendAccessEmail;
+        if (payload.sendAccessEmail) delete payload.password;
+      }
 
       if (isEdit) {
         await updateUser(user.id, payload);
         toast.success(t('usersPage.updatedToast'));
       } else {
-        await createUser(payload);
-        toast.success(t('usersPage.createdToast'));
+        const created = await createUser(payload);
+        if (created.accessEmail === 'queued') toast.success(t('usersPage.accessEmailQueued', { email: created.email }));
+        else if (created.accessEmail === 'failed') toast.warning(t('usersPage.accessEmailFailed'), { duration: 10000 });
+        else toast.success(t('usersPage.createdToast'));
       }
       onSuccess();
       onClose();
@@ -301,17 +320,35 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Contraseña */}
-          <div className="space-y-1.5">
-            <Label htmlFor="password">
-              {isEdit ? t('usersPage.newPassword') : t('usersPage.passwordRequired')}
-              {isEdit && (
-                <span className="text-muted-foreground font-normal ml-1">{t('usersPage.passwordHint')}</span>
-              )}
-            </Label>
-            <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
-            {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-          </div>
+          {/* Correo de acceso (2026-11-23) — solo clientes nuevos, marcado por default */}
+          {!isEdit && role === 'client' && (
+            <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
+              <Switch
+                id="sendAccessEmail"
+                checked={!!sendAccessEmail}
+                onCheckedChange={(v) => setValue('sendAccessEmail', v, { shouldValidate: true })}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="sendAccessEmail" className="cursor-pointer">{t('usersPage.sendAccessEmail')}</Label>
+                <p className="text-xs text-muted-foreground">{t('usersPage.sendAccessEmailHint')}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Contraseña (no se pide si se genera para el correo de acceso) */}
+          {!autoPassword && (
+            <div className="space-y-1.5">
+              <Label htmlFor="password">
+                {isEdit ? t('usersPage.newPassword') : t('usersPage.passwordRequired')}
+                {isEdit && (
+                  <span className="text-muted-foreground font-normal ml-1">{t('usersPage.passwordHint')}</span>
+                )}
+              </Label>
+              <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
+          )}
 
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
@@ -340,6 +377,8 @@ const UsersPage = () => {
   const [roleFilter, setRoleFilter] = useState('client'); // enfocado en clientes por defecto
   const [modal, setModal]       = useState({ open: false, user: null });
   const [deleting, setDeleting] = useState(null); // usuario a eliminar
+  const [resending, setResending] = useState(null); // cliente al que se reenvía el acceso
+  const [resendBusy, setResendBusy] = useState(false);
 
   const fetchUsers = useCallback(async (link = null) => {
     try {
@@ -387,6 +426,22 @@ const UsersPage = () => {
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.error || t('usersPage.deleteError'));
+    }
+  };
+
+  // Reenviar acceso (2026-11-23): contraseña temporal NUEVA por correo.
+  const handleResend = async () => {
+    if (!resending) return;
+    setResendBusy(true);
+    try {
+      await resendAccess(resending.id);
+      toast.success(t('usersPage.resendQueued', { email: resending.email }));
+      setResending(null);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.error || t('usersPage.resendError'), { duration: 10000 });
+    } finally {
+      setResendBusy(false);
     }
   };
 
@@ -507,6 +562,11 @@ const UsersPage = () => {
                             <UserX className="h-3.5 w-3.5" /> {t('usersPage.userInactive')}
                           </span>
                         )}
+                        {u.mustChangePassword && (
+                          <span className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 whitespace-nowrap">
+                            <KeyRound className="h-3 w-3" /> {t('usersPage.pendingPasswordChange')}
+                          </span>
+                        )}
                       </td>
 
                       {/* Contacto */}
@@ -541,6 +601,18 @@ const UsersPage = () => {
                       {/* Acciones */}
                       <td className="px-6 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {u.role === 'client' && u.isActive && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setResending(u)}
+                              className="h-8 w-8 p-0"
+                              title={t('usersPage.resendAccess')}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              <span className="sr-only">{t('usersPage.resendAccess')}</span>
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -584,6 +656,26 @@ const UsersPage = () => {
         onClose={closeModal}
         onSuccess={fetchUsers}
       />
+
+      {/* Confirmación de reenvío de acceso (reemplaza la contraseña actual) */}
+      <Dialog open={!!resending} onOpenChange={(o) => { if (!o && !resendBusy) setResending(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('usersPage.resendTitle')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            {t('usersPage.resendConfirm', { name: resending?.fullName, email: resending?.email })}
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setResending(null)} disabled={resendBusy}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleResend} disabled={resendBusy}>
+              <Send className="mr-2 h-4 w-4" /> {resendBusy ? t('usersPage.resendSending') : t('usersPage.resendSend')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Diálogo de confirmación de borrado */}
       <Dialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null); }}>

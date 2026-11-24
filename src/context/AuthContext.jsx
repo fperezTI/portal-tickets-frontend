@@ -104,8 +104,17 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  // Sesión nueva devuelta por el backend sin pasar por login (p. ej. después
+  // de cambiar la contraseña, 2026-11-23: el usuario sigue dentro y las demás
+  // sesiones quedan cerradas). `user.mustChangePassword` decide si
+  // ProtectedRoute muestra la pantalla de cambio obligatorio.
+  const applySession = useCallback(({ accessToken, user: nextUser }) => {
+    setAccessToken(accessToken);
+    setUser(nextUser);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, customerLabel }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, applySession, customerLabel }}>
       {children}
     </AuthContext.Provider>
   );
