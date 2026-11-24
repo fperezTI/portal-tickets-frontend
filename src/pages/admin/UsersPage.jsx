@@ -173,12 +173,16 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* 2026-11-24: ventana ancha a dos columnas para que quepan todos los
+          campos sin desplazarse; en pantallas chicas vuelve a una columna y,
+          si aun así no cabe, se desplaza dentro de la ventana (nunca se corta). */}
+      <DialogContent className="sm:max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? t('usersPage.editTitle', { name: user.fullName }) : t('usersPage.newUserTitle')}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
           {/* Email (solo en creación) */}
           {!isEdit && (
             <div className="space-y-1.5">
@@ -258,7 +262,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
 
           {/* Estado activo (solo en edición) */}
           {isEdit && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 sm:pt-6">
               <Switch
                 id="isActive"
                 checked={isActive}
@@ -269,15 +273,16 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               </Label>
             </div>
           )}
+          </div>
 
           {/* Separador de sección D365 */}
-          <div className="pt-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Link className="h-3 w-3" />
               {t('usersPage.d365Linking')}
             </p>
 
-            <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border bg-muted/30 p-3">
               <div className="space-y-1.5">
                 <Label className="text-sm">
                   {t('usersPage.companyAccount')}
@@ -320,6 +325,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
             </div>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2 items-start empty:hidden">
           {/* Correo de acceso (2026-11-23) — solo clientes nuevos, marcado por default */}
           {!isEdit && role === 'client' && (
             <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
@@ -349,8 +355,9 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
           )}
+          </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               {t('common.cancel')}
             </Button>
