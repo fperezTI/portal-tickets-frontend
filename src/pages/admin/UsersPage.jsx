@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2, Send, KeyRound } from 'lucide-react';
+import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2, Send, KeyRound, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -370,7 +370,8 @@ const UsersPage = () => {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
   const [users, setUsers]       = useState([]);
-  const [nextLink, setNextLink] = useState(null);
+  // Orden por columna (2026-11-24): key null = orden del servidor (más recientes primero).
+  const [sort, setSort]         = useState({ key: null, dir: 'asc' });
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [search, setSearch]     = useState('');
@@ -380,20 +381,23 @@ const UsersPage = () => {
   const [resending, setResending] = useState(null); // cliente al que se reenvía el acceso
   const [resendBusy, setResendBusy] = useState(false);
 
-  const fetchUsers = useCallback(async (link = null) => {
+  // Se traen TODAS las páginas (2026-11-24) para poder ordenar por columna
+  // sobre la lista completa (antes eran 25 + "Cargar más"). Son pocas decenas
+  // de usuarios: una llamada por cada 100.
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const params = link ? { nextLink: link } : { pageSize: 25, search };
-      const result = await listUsers(params);
+      const all = [];
+      let result = await listUsers({ pageSize: 100, search });
+      all.push(...result.data);
+      while (result.nextLink) {
+        result = await listUsers({ nextLink: result.nextLink });
+        all.push(...result.data);
+      }
 
       // Filtrar por rol en cliente (el backend no soporta filtro de rol aún)
-      const filtered = roleFilter
-        ? result.data.filter((u) => u.role === roleFilter)
-        : result.data;
-
-      setUsers((prev) => (link ? [...prev, ...filtered] : filtered));
-      setNextLink(result.nextLink);
+      setUsers(roleFilter ? all.filter((u) => u.role === roleFilter) : all);
     } catch (err) {
       setError(err.response?.data?.error || t('usersPage.loadError'));
     } finally {
@@ -403,9 +407,49 @@ const UsersPage = () => {
 
   useEffect(() => {
     setUsers([]);
-    setNextLink(null);
     fetchUsers();
   }, [search, roleFilter]);
+
+  // Valor de orden de cada columna. Vacíos (sin vínculo, nunca entró) siempre al final.
+  const sortedUsers = useMemo(() => {
+    if (!sort.key) return users;
+    const SORT_VALUE = {
+      user:       (u) => u.fullName || u.email,
+      role:       (u) => t(ROLE_LABEL_KEY[u.role]),
+      status:     (u) => (u.isActive ? 0 : 1),
+      contact:    (u) => (u.d365ContactId ? (u.contactName || u.d365ContactId) : null),
+      account:    (u) => (u.d365AccountId ? (u.accountName || u.d365AccountId) : null),
+      lastAccess: (u) => (u.lastLoginAt ? Date.parse(u.lastLoginAt) : null),
+    };
+    const get = SORT_VALUE[sort.key];
+    const factor = sort.dir === 'asc' ? 1 : -1;
+    return [...users].sort((a, b) => {
+      const va = get(a), vb = get(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      const cmp = typeof va === 'number'
+        ? va - vb
+        : String(va).localeCompare(String(vb), undefined, { sensitivity: 'base', numeric: true });
+      return cmp * factor;
+    });
+  }, [users, sort, t]);
+
+  // Clic en el encabezado: ascendente → descendente → sin orden.
+  const toggleSort = (key) => setSort((s) => {
+    if (s.key !== key) return { key, dir: 'asc' };
+    if (s.dir === 'asc') return { key, dir: 'desc' };
+    return { key: null, dir: 'asc' };
+  });
+
+  const COLUMNS = [
+    { key: 'user',       label: t('usersPage.colUser') },
+    { key: 'role',       label: t('usersPage.colRole') },
+    { key: 'status',     label: t('table.status') },
+    { key: 'contact',    label: t('usersPage.colContact') },
+    { key: 'account',    label: t('usersPage.colAccount') },
+    { key: 'lastAccess', label: t('usersPage.colLastAccess') },
+  ];
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -502,7 +546,7 @@ const UsersPage = () => {
           <CardTitle className="text-base font-medium text-muted-foreground">
             {loading && users.length === 0
               ? t('common.loadingEllipsis')
-              : t('usersPage.userCount', { count: users.length, plus: nextLink ? '+' : '' })}
+              : t('usersPage.userCount', { count: users.length, plus: '' })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -521,15 +565,32 @@ const UsersPage = () => {
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40">
                   <tr>
-                    {[t('usersPage.colUser'), t('usersPage.colRole'), t('table.status'), t('usersPage.colContact'), t('usersPage.colAccount'), t('usersPage.colLastAccess'), ''].map((h) => (
-                      <th key={h} className="text-left px-6 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                        {h}
-                      </th>
-                    ))}
+                    {COLUMNS.map(({ key, label }) => {
+                      const active = sort.key === key;
+                      const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
+                      return (
+                        <th
+                          key={key}
+                          className="text-left px-6 py-3 font-medium text-muted-foreground whitespace-nowrap"
+                          aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleSort(key)}
+                            className={cn('inline-flex items-center gap-1.5 hover:text-foreground transition-colors', active && 'text-foreground')}
+                          >
+                            {label}
+                            <Icon className={cn('h-3.5 w-3.5', !active && 'opacity-40')} />
+                          </button>
+                        </th>
+                      );
+                    })}
+                    <th className="px-6 py-3" />
+
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {users.map((u) => (
+                  {sortedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-muted/20 transition-colors">
                       {/* Usuario */}
                       <td className="px-6 py-3">
@@ -640,13 +701,6 @@ const UsersPage = () => {
             </div>
           )}
 
-          {nextLink && !loading && (
-            <div className="p-4 text-center border-t">
-              <Button variant="outline" size="sm" onClick={() => fetchUsers(nextLink)}>
-                {t('usersPage.loadMore')}
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
