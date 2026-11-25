@@ -592,8 +592,8 @@ const UsersPage = () => {
       )}
 
       {/* Tabla */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="gap-0 py-0 overflow-hidden">
+        <CardHeader className="py-3">
           <CardTitle className="text-base font-medium text-muted-foreground">
             {loading && users.length === 0
               ? t('common.loadingEllipsis')
@@ -619,6 +619,7 @@ const UsersPage = () => {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-card">
                   <tr className="bg-muted/40 [&>th]:shadow-[inset_0_-1px_0_var(--border)]">
+                    <th className="pl-4 pr-0 py-3" />
                     {COLUMNS.map(({ key, label }) => {
                       const active = sort.key === key;
                       const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
@@ -646,6 +647,33 @@ const UsersPage = () => {
                 <tbody className="divide-y">
                   {sortedUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-muted/20 transition-colors">
+                      {/* Acciones principales (editar, reenviar acceso); eliminar va al final */}
+                      <td className="pl-4 pr-0 py-3">
+                        <div className="flex items-center gap-1 w-[68px]">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(u)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span className="sr-only">{t('usersPage.edit')}</span>
+                          </Button>
+                          {u.role === 'client' && u.isActive && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setResending(u)}
+                              className="h-8 w-8 p-0"
+                              title={t('usersPage.resendAccess')}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              <span className="sr-only">{t('usersPage.resendAccess')}</span>
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+
                       {/* Usuario */}
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
@@ -721,27 +749,6 @@ const UsersPage = () => {
                       {/* Acciones */}
                       <td className="px-6 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {u.role === 'client' && u.isActive && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setResending(u)}
-                              className="h-8 w-8 p-0"
-                              title={t('usersPage.resendAccess')}
-                            >
-                              <Send className="h-3.5 w-3.5" />
-                              <span className="sr-only">{t('usersPage.resendAccess')}</span>
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEdit(u)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            <span className="sr-only">{t('usersPage.edit')}</span>
-                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
