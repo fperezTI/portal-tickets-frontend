@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import AuthShell, { LOGIN_THEMES, useAuthT } from '../components/AuthShell';
+import MfaStep from '../components/MfaStep';
 import { getBrand, setTab } from '@/lib/brand';
 
 // Login con el diseño de Grupo Staff (2026-10-10: el usuario pidió regresar al
@@ -31,6 +32,9 @@ import { getBrand, setTab } from '@/lib/brand';
 //
 // 2026-11-23: el marco (panel de marca + tarjeta) y los temas se movieron a
 // components/AuthShell.jsx, para reusarlos en las pantallas de contraseña.
+//
+// 2026-11-24: usuarios con verificación en dos pasos → después de la
+// contraseña, el mismo marco muestra MfaStep (código enviado al correo).
 const LoginPage = ({ brand: brandKey = 'grupostaff' }) => {
   const brand = getBrand(brandKey);
   const theme = LOGIN_THEMES[brand.key];
@@ -46,6 +50,8 @@ const LoginPage = ({ brand: brandKey = 'grupostaff' }) => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  // Respuesta del login cuando falta el código de verificación.
+  const [challenge, setChallenge] = useState(null);
 
   // El esquema se arma con t() para que los mensajes salgan en el idioma actual.
   const schema = useMemo(() => z.object({
@@ -62,6 +68,7 @@ const LoginPage = ({ brand: brandKey = 'grupostaff' }) => {
   const loginErrorMessage = (err) => {
     const status = err.response?.status;
     if (err.response?.data?.code === 'TEMP_PASSWORD_EXPIRED') return t('login.tempPasswordExpired');
+    if (err.response?.data?.code === 'MFA_SEND_FAILED') return t('login.mfaSendFailed');
     if (status === 401) return t('login.invalidCredentials');
     if (status === 403) return t('login.inactiveUser');
     if (status === 429) return t('login.tooManyAttempts');
@@ -71,12 +78,26 @@ const LoginPage = ({ brand: brandKey = 'grupostaff' }) => {
   const onSubmit = async ({ email, password }) => {
     setError('');
     try {
-      await login(email, password);
+      const data = await login(email, password);
+      if (data.mfaRequired) { setChallenge(data); return; }
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(loginErrorMessage(err));
     }
   };
+
+  if (challenge) {
+    return (
+      <AuthShell brandKey={brand.key} t={t}>
+        <MfaStep
+          challenge={challenge}
+          t={t}
+          onVerified={() => navigate('/dashboard', { replace: true })}
+          onBack={() => setChallenge(null)}
+        />
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell brandKey={brand.key} t={t}>

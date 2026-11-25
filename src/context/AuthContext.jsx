@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import i18n, { rememberLanguage, getRememberedLanguage } from '../i18n';
-import { login as apiLogin, logout as apiLogout } from '../api/auth';
+import { login as apiLogin, logout as apiLogout, verifyMfa as apiVerifyMfa } from '../api/auth';
 import { resolveAccount, resolveContact } from '../api/d365';
 import { setAccessToken, clearAccessToken } from '../utils/tokenStore';
 import { getBrand, rememberCompany, setTab } from '@/lib/brand';
@@ -97,8 +97,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user?.role, user?.d365AccountId, user?.d365ContactId, user?.fullName, user?.email]);
 
+  // Con verificación en dos pasos pendiente (2026-11-24) todavía no hay
+  // sesión: se devuelve { mfaRequired, mfaToken, ... } y LoginPage pide el código.
   const login = async (email, password) => {
     const data = await apiLogin(email, password);
+    if (data.mfaRequired) return data;
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    return data;
+  };
+
+  const verifyMfa = async (mfaToken, code, remember) => {
+    const data = await apiVerifyMfa(mfaToken, code, remember);
     setAccessToken(data.accessToken);
     setUser(data.user);
     return data;
@@ -114,7 +124,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, applySession, customerLabel }}>
+    <AuthContext.Provider value={{ user, isLoading, login, verifyMfa, logout, applySession, customerLabel }}>
       {children}
     </AuthContext.Provider>
   );

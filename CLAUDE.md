@@ -118,6 +118,14 @@ Reglas y endpoints en el `CLAUDE.md` del backend (sección "Contraseñas"). Lo p
 - **Usuarios** (`UsersPage`): casilla "Enviar correo de acceso al usuario" solo para clientes nuevos, **marcada por default**; marcada, no se pide contraseña (la genera el backend). Avisos según `accessEmail` (`queued`/`failed`). Botón "Reenviar acceso" (ícono de avión) en clientes activos, con confirmación porque reemplaza la contraseña actual. Etiqueta "Cambio de contraseña pendiente" bajo el estado. Por decisión del usuario NO hay aviso al admin de que el cliente deberá cambiar la contraseña capturada a mano.
 - Reglas de contraseña nueva compartidas en `src/lib/passwordRules.js` (mismas que el backend) y campo con mostrar/ocultar en `src/components/PasswordField.jsx`. Textos en `passwordFlow.*` (y algunos en `login.*`, `changePassword.*`, `usersPage.*`).
 
+## Verificación en dos pasos por correo (2026-11-24)
+
+Reglas y endpoints en el `CLAUDE.md` del backend (sección "Verificación en dos pasos"). Lo propio del frontend:
+
+- **Login**: si `login()` devuelve `mfaRequired`, `LoginPage` muestra `MfaStep` (`src/components/MfaStep.jsx`) dentro del mismo `AuthShell` y con el mismo `t()` (en `/loginst`, inglés). `AuthContext.login` no abre sesión en ese caso; `AuthContext.verifyMfa` sí.
+- **`MfaStep`**: campo de 6 dígitos (`autoComplete="one-time-code"`), interruptor "Recordar este equipo por 30 días" (apagado por default), reenviar con cuenta regresiva (60 s), volver al login. Mensajes por `code` del backend (`MFA_*`), textos en `login.mfa*`.
+- **Usuarios**: interruptor "Verificación por correo" en alta y edición (todos los roles, apagado por default) y etiqueta con escudo bajo el estado en la lista.
+
 ## Entorno local y despliegue (2026-11-10)
 
 La guía completa (requisitos, secretos, cambio de computadora, conversaciones de Claude) está en el `CLAUDE.md` del backend, sección **"Entorno local, despliegue y cambio de computadora"**. Lo propio de este repo:

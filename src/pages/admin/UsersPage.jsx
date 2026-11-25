@@ -22,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2, Send, KeyRound, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Pencil, Link, UserCheck, UserX, Trash2, Send, KeyRound, ShieldCheck, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -62,6 +62,8 @@ const createSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
   password:       z.string().optional(),
   sendAccessEmail: z.boolean(),
+  // Verificación en dos pasos por correo (2026-11-24), cualquier rol.
+  mfaEnabled:     z.boolean(),
   role:           z.enum(['admin', 'support', 'consultor', 'client']),
   language:       z.enum(['es', 'en']),
   // Empresa (multi-empresa, 2026-10-07): solo se guarda para staff; la de un
@@ -75,7 +77,7 @@ const createSchema = z.object({
   if (!r.success) ctx.addIssue({ code: 'custom', path: ['password'], message: r.error.issues[0].message });
 });
 
-const CREATE_DEFAULTS = { email: '', fullName: '', password: '', sendAccessEmail: true, role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' };
+const CREATE_DEFAULTS = { email: '', fullName: '', password: '', sendAccessEmail: true, mfaEnabled: false, role: 'client', language: 'es', company: 'grupostaff', d365ContactId: '', d365AccountId: '' };
 
 const editSchema = z.object({
   fullName:       z.string().min(1, 'Nombre requerido'),
@@ -85,6 +87,7 @@ const editSchema = z.object({
   // cliente sale de su cuenta en Dynamics.
   company:        z.enum(['grupostaff', 'satustec']),
   isActive:       z.boolean(),
+  mfaEnabled:     z.boolean(),
   d365ContactId:  guidOrEmpty,
   d365AccountId:  guidOrEmpty,
   password:       z.union([passwordRules, z.literal('')]).optional(),
@@ -107,6 +110,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
             language:      user.language || 'es',
             company:       user.company || 'grupostaff',
             isActive:      user.isActive ?? true,
+            mfaEnabled:    !!user.mfaEnabled,
             d365ContactId: user.d365ContactId || '',
             d365AccountId: user.d365AccountId || '',
             password:      '',
@@ -125,6 +129,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
               language:      user.language || 'es',
               company:       user.company || 'grupostaff',
               isActive:      user.isActive ?? true,
+              mfaEnabled:    !!user.mfaEnabled,
               d365ContactId: user.d365ContactId || '',
               d365AccountId: user.d365AccountId || '',
               password:      '',
@@ -135,6 +140,7 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
   }, [open, user]);
 
   const isActive = watch('isActive');
+  const mfaEnabled = watch('mfaEnabled');
   const role = watch('role');
   const sendAccessEmail = watch('sendAccessEmail');
   // Cliente nuevo con correo de acceso: la contraseña la genera el backend.
@@ -322,6 +328,20 @@ const UserFormModal = ({ user, open, onClose, onSuccess }) => {
                   <p className="text-xs text-destructive">{errors.d365ContactId.message}</p>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Verificación en dos pasos por correo (2026-11-24) — cualquier rol, apagada por default */}
+          <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
+            <Switch
+              id="mfaEnabled"
+              checked={!!mfaEnabled}
+              onCheckedChange={(v) => setValue('mfaEnabled', v)}
+              className="mt-0.5"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="mfaEnabled" className="cursor-pointer">{t('usersPage.mfaEnabled')}</Label>
+              <p className="text-xs text-muted-foreground">{t('usersPage.mfaEnabledHint')}</p>
             </div>
           </div>
 
@@ -633,6 +653,11 @@ const UsersPage = () => {
                         {u.mustChangePassword && (
                           <span className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 whitespace-nowrap">
                             <KeyRound className="h-3 w-3" /> {t('usersPage.pendingPasswordChange')}
+                          </span>
+                        )}
+                        {u.mfaEnabled && (
+                          <span className="mt-1 flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-400 whitespace-nowrap">
+                            <ShieldCheck className="h-3 w-3" /> {t('usersPage.mfaOn')}
                           </span>
                         )}
                       </td>
