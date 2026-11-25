@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -399,6 +399,10 @@ const UsersPage = () => {
   const [users, setUsers]       = useState([]);
   // Orden por columna (2026-11-24): key null = orden del servidor (más recientes primero).
   const [sort, setSort]         = useState({ key: null, dir: 'asc' });
+  // Alto de la tabla = lo que queda de la ventana debajo de ella, para que su
+  // barra horizontal quede siempre visible abajo y la página no se desplace.
+  const tableBoxRef = useRef(null);
+  const [tableMaxH, setTableMaxH] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [search, setSearch]     = useState('');
@@ -461,6 +465,26 @@ const UsersPage = () => {
       return cmp * factor;
     });
   }, [users, sort, t]);
+
+  // Alto disponible = alto de la ventana menos lo que hay arriba de la tabla y
+  // el padding inferior del área de contenido; se recalcula al cambiar el
+  // tamaño de la ventana o lo que hay encima (error, conteo).
+  const hasTable = users.length > 0;
+  useLayoutEffect(() => {
+    const el = tableBoxRef.current;
+    const area = el?.parentElement?.closest('.overflow-auto');
+    if (!el || !area) return undefined;
+    const measure = () => {
+      // Posición de la tabla con todo sin desplazar (ventana y área de contenido);
+      // contra la ventana, porque el área del Layout no tiene alto fijo.
+      const top = el.getBoundingClientRect().top + window.scrollY + area.scrollTop;
+      const padBottom = parseFloat(getComputedStyle(area).paddingBottom) || 0;
+      setTableMaxH(Math.max(240, Math.floor(window.innerHeight - top - padBottom - 4)));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [hasTable, error]);
 
   // Clic en el encabezado: ascendente → descendente → sin orden.
   const toggleSort = (key) => setSort((s) => {
@@ -588,10 +612,13 @@ const UsersPage = () => {
               {t('usersPage.noUsersFound')}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            // Scroll propio (vertical y horizontal) acotado a la pantalla: la barra
+            // horizontal queda siempre visible abajo, sin bajar hasta el último
+            // usuario; el encabezado se queda fijo al desplazarse.
+            <div ref={tableBoxRef} className="overflow-auto" style={{ maxHeight: tableMaxH ?? undefined }}>
               <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40">
-                  <tr>
+                <thead className="sticky top-0 z-10 bg-card">
+                  <tr className="bg-muted/40 [&>th]:shadow-[inset_0_-1px_0_var(--border)]">
                     {COLUMNS.map(({ key, label }) => {
                       const active = sort.key === key;
                       const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
