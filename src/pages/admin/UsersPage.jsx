@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
@@ -402,6 +402,7 @@ const UsersPage = () => {
   // Alto de la tabla = lo que queda de la ventana debajo de ella, para que su
   // barra horizontal quede siempre visible abajo y la página no se desplace.
   const tableBoxRef = useRef(null);
+  const tableFooterRef = useRef(null);
   const [tableMaxH, setTableMaxH] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
@@ -479,7 +480,8 @@ const UsersPage = () => {
       // contra la ventana, porque el área del Layout no tiene alto fijo.
       const top = el.getBoundingClientRect().top + window.scrollY + area.scrollTop;
       const padBottom = parseFloat(getComputedStyle(area).paddingBottom) || 0;
-      setTableMaxH(Math.max(240, Math.floor(window.innerHeight - top - padBottom - 4)));
+      const footer = tableFooterRef.current?.offsetHeight || 0;
+      setTableMaxH(Math.max(240, Math.floor(window.innerHeight - top - padBottom - footer - 4)));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -593,13 +595,6 @@ const UsersPage = () => {
 
       {/* Tabla */}
       <Card className="gap-0 py-0 overflow-hidden">
-        <CardHeader className="py-3">
-          <CardTitle className="text-base font-medium text-muted-foreground">
-            {loading && users.length === 0
-              ? t('common.loadingEllipsis')
-              : t('usersPage.userCount', { count: users.length, plus: '' })}
-          </CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
           {loading && users.length === 0 ? (
             <div className="p-6 space-y-3">
@@ -767,6 +762,12 @@ const UsersPage = () => {
             </div>
           )}
 
+          {/* Pie del grid: cantidad de usuarios */}
+          {hasTable && (
+            <div ref={tableFooterRef} className="border-t px-6 py-2.5 text-sm text-muted-foreground">
+              {t('usersPage.userCount', { count: users.length, plus: '' })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
